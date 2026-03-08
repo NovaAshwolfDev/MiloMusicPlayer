@@ -5,7 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
-  
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: true
+
 jobs:
   build:
     runs-on: windows-latest
@@ -24,22 +28,15 @@ jobs:
 
       - name: Publish
         run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish
-        
+
       - name: Zip output
-        run: Compress-Archive -Path ./publish/* -DestinationPath ./MiloMusicPlayer-${{ github.ref_name }}-win-x64.zip
+        run: Compress-Archive -Path ./publish/* -DestinationPath ./MiloMusicPlayer-${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}-win-x64.zip
 
-      - name: Upload artifact (manual runs)
-        if: github.ref_type != 'tag'
-        uses: actions/upload-artifact@v4
-        with:
-          name: MiloMusicPlayer-${{ github.ref_name }}-win-x64
-          path: ./MiloMusicPlayer-${{ github.ref_name }}-win-x64.zip
-
-      - name: Create Release (tag runs only)
-        if: github.ref_type == 'tag'
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ./MiloMusicPlayer-${{ github.ref_name }}-win-x64.zip
-          name: Milo Music Player ${{ github.ref_name }}
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
+          files: ./MiloMusicPlayer-${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}-win-x64.zip
+          name: Milo Music Player ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
           draft: false
           prerelease: false
