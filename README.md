@@ -1,8 +1,10 @@
-# Milo's Music Player
+# Milo's Music Player <img width="28" height="28" alt="MusicPlayer" src="https://github.com/user-attachments/assets/0346173f-0562-4932-8ff2-750935ef3175" />
+
 
 A fast, modern desktop music player built with **C#**, **Avalonia UI**, and **NAudio**.
 
 This project focuses on a clean interface, smooth playback, and experimental UI features.
+
 ---
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/f6f6d810-cd1f-47e1-9d7c-0583a693ce53" />
@@ -28,6 +30,7 @@ C:\Users\<username>\Music
 ```
 
 Songs are loaded into a library and played using NAudio. Metadata such as title, artist, genre, and album art are extracted using TagLib.
+
 ---
 
 ## Libraries Used
