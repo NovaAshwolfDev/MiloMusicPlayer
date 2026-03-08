@@ -35,12 +35,12 @@ public partial class MainWindow : Window
 
     private readonly AlbumArtServer _artServer = new();
     private readonly Services.DiscordRPC _rpc = new("980443378661621843");
-
     public MainWindow()
     {
+        string musicFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic);
         InitializeComponent();
         Icon = new WindowIcon("Assets/icon.ico");
-        songs = LibraryScanner.ScanFolder(@"C:\Users\Milo\Music");
+        songs = LibraryScanner.ScanFolder(musicFolder);
 
         if (songs.Count == 0)
             return;
@@ -75,6 +75,7 @@ public partial class MainWindow : Window
 
     private async Task InitLibrary()
     {
+        string musicFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic);
         _allLibrarySongs = await Task.Run(() => songs.Select(s =>
         {
             var art = MetadataReader.GetAlbumArt(s.FilePath);
@@ -99,8 +100,7 @@ public partial class MainWindow : Window
         _allFolders = _allLibrarySongs
             .GroupBy(s =>
             {
-                var root = @"C:\Users\Milo\Music";
-                var rel = Path.GetRelativePath(root, Path.GetDirectoryName(s.FilePath) ?? root);
+                var rel = Path.GetRelativePath(musicFolder, Path.GetDirectoryName(s.FilePath) ?? musicFolder);
                 return rel.Split(Path.DirectorySeparatorChar)[0];
             })
             .OrderBy(g => g.Key)
