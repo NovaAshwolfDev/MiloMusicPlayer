@@ -17,15 +17,23 @@ public class DiscordRPC
 
     public void UpdatePresence(Song song, TimeSpan position, TimeSpan duration, string artUrl)
     {
-        var end = DateTimeOffset.UtcNow + (duration - position);
+        var now = DateTimeOffset.UtcNow;
+        var start = now - position;  // when the song started
+        var end = now + (duration - position);  // when it will end
+
         _client.SetPresence(new RichPresence
         {
+            Type = ActivityType.Listening,
             Details = song.Title,
             State = song.Artist,
-            Timestamps = new Timestamps { End = end.UtcDateTime },
+            Timestamps = new Timestamps 
+            { 
+                Start = start.UtcDateTime, 
+                End = end.UtcDateTime 
+            },
             Assets = new Assets
             {
-                LargeImageKey = artUrl,        // uses the localhost URL now
+                LargeImageKey = artUrl,
                 LargeImageText = song.Title,
                 SmallImageKey = "note",
                 SmallImageText = "Milo Music Player"

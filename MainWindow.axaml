@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="using:MiloMusicPlayer"
+        xmlns:models="using:MiloMusicPlayer.Models"
         x:Class="MiloMusicPlayer.MainWindow"
         Title="MiloMusicPlayer"
         Width="900"
@@ -43,6 +44,13 @@
             <Setter Property="Background" Value="#111827"/>
         </Style>
 
+        <Style Selector="Button.mediaActive">
+            <Setter Property="Background" Value="#11243D"/>
+            <Setter Property="Foreground" Value="#49B9FF"/>
+            <Setter Property="BorderBrush" Value="#49B9FF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
         <Style Selector="Button.primaryMedia">
             <Setter Property="Background" Value="#11243D"/>
             <Setter Property="Foreground" Value="White"/>
@@ -62,6 +70,40 @@
         <Style Selector="Slider">
             <Setter Property="Foreground" Value="#37B6FF"/>
         </Style>
+
+        <Style Selector="ListBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="8,6"/>
+        </Style>
+
+        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#1A2233"/>
+        </Style>
+
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#22304A"/>
+        </Style>
+
+        <Style Selector="TreeViewItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="8,4"/>
+        </Style>
+
+        <Style Selector="TreeViewItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#1A2233"/>
+        </Style>
+
+        <Style Selector="TreeViewItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#22304A"/>
+        </Style>
+
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="#1A2233"/>
+            <Setter Property="Foreground" Value="#F5FBFF"/>
+            <Setter Property="BorderBrush" Value="#2B3D5D"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+        </Style>
     </Window.Styles>
 
     <Grid>
@@ -71,13 +113,15 @@
         />
 
         <!-- Main Player -->
-        <Border HorizontalAlignment="Center"
+        <Border x:Name="PlayerView"
+                HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Background="#0D1320"
                 BorderBrush="#20314A"
                 BorderThickness="1"
                 CornerRadius="28"
-                Padding="14">
+                Padding="14"
+                Opacity="1">
 
             <StackPanel HorizontalAlignment="Center"
                         VerticalAlignment="Center"
@@ -137,8 +181,7 @@
                             Height="48"
                             CornerRadius="24"
                             Click="SkipBack_Click">
-                        <PathIcon Width="18"
-                                  Height="18"
+                        <PathIcon Width="18" Height="18"
                                   Foreground="White"
                                   Data="M15,18V6L6.5,12M18,18V6H16V18H18Z"/>
                     </Button>
@@ -162,8 +205,7 @@
                             Height="48"
                             CornerRadius="24"
                             Click="SkipForward_Click">
-                        <PathIcon Width="18"
-                                  Height="18"
+                        <PathIcon Width="18" Height="18"
                                   Foreground="White"
                                   Data="M9,6V18L17.5,12M8,6H6V18H8V6Z"/>
                     </Button>
@@ -171,6 +213,154 @@
             </StackPanel>
         </Border>
 
+        <!-- Library View -->
+        <Grid x:Name="LibraryView"
+              IsVisible="False"
+              Opacity="0"
+              Margin="24">
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Library title — pushed down past the floating buttons -->
+            <TextBlock Grid.Row="0"
+                       Text="Library"
+                       Classes="title"
+                       FontSize="28"
+                       Margin="0,72,0,0"/>
+
+            <!-- Search bar + view toggle buttons -->
+            <Grid Grid.Row="1" Margin="0,8,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0"
+                        x:Name="SearchBox"
+                        Watermark="Search songs, artists, albums..."
+                        Height="40"
+                        Margin="0,0,8,0"
+                        VerticalContentAlignment="Center"
+                        TextChanged="SearchBox_TextChanged"/>
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="6">
+                    <Button x:Name="ListViewButton"
+                            Classes="mediaActive"
+                            Width="40"
+                            Height="40"
+                            CornerRadius="8"
+                            ToolTip.Tip="List view"
+                            Click="ListViewButton_Click">
+                        <PathIcon Width="16" Height="16"
+                                  Foreground="White"
+                                  Data="M3,4H21V6H3V4M3,9H21V11H3V9M3,14H21V16H3V14M3,19H21V21H3V19Z"/>
+                    </Button>
+                    <Button x:Name="FolderViewButton"
+                            Classes="media"
+                            Width="40"
+                            Height="40"
+                            CornerRadius="8"
+                            ToolTip.Tip="Folder view"
+                            Click="FolderViewButton_Click">
+                        <PathIcon Width="16" Height="16"
+                                  Foreground="White"
+                                  Data="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- List view -->
+            <ListBox Grid.Row="2"
+                     x:Name="LibraryList"
+                     Background="Transparent"
+                     Tapped="LibraryList_Tapped"
+                     IsVisible="True">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:LibrarySong">
+                        <Grid ColumnDefinitions="56,*" Margin="0,4">
+                            <Border Grid.Column="0"
+                                    Width="48" Height="48"
+                                    CornerRadius="6"
+                                    ClipToBounds="True"
+                                    Background="#111827">
+                                <Image Source="{Binding AlbumArt}"
+                                       Stretch="UniformToFill"/>
+                            </Border>
+                            <StackPanel Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        Margin="10,0,0,0"
+                                        Spacing="2">
+                                <TextBlock Text="{Binding Title}"
+                                           Classes="subtitle"
+                                           FontWeight="SemiBold"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding Artist}"
+                                           Classes="meta"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding Album}"
+                                           Classes="meta"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- Folder view -->
+            <TreeView Grid.Row="2"
+                      x:Name="FolderList"
+                      Background="Transparent"
+                      Tapped="FolderList_Tapped"
+                      IsVisible="False">
+                <TreeView.DataTemplates>
+                    <TreeDataTemplate DataType="models:LibraryFolder"
+                                      ItemsSource="{Binding Songs}">
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6">
+                            <PathIcon Width="16" Height="16"
+                                      Foreground="#7F96AA"
+                                      Data="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"/>
+                            <TextBlock Text="{Binding Name}"
+                                       Classes="subtitle"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </TreeDataTemplate>
+                    <DataTemplate DataType="models:LibrarySong">
+                        <Grid ColumnDefinitions="56,*" Margin="0,4">
+                            <Border Grid.Column="0"
+                                    Width="48" Height="48"
+                                    CornerRadius="6"
+                                    ClipToBounds="True"
+                                    Background="#111827">
+                                <Image Source="{Binding AlbumArt}"
+                                       Stretch="UniformToFill"/>
+                            </Border>
+                            <StackPanel Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        Margin="10,0,0,0"
+                                        Spacing="2">
+                                <TextBlock Text="{Binding Title}"
+                                           Classes="subtitle"
+                                           FontWeight="SemiBold"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding Artist}"
+                                           Classes="meta"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding Album}"
+                                           Classes="meta"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </TreeView.DataTemplates>
+            </TreeView>
+        </Grid>
+
+        <!-- Floating buttons -->
         <StackPanel HorizontalAlignment="Left"
                     VerticalAlignment="Top"
                     Margin="16"
@@ -181,10 +371,9 @@
                     Height="46"
                     CornerRadius="23"
                     Click="LibraryButton_Click">
-                <PathIcon Width="18"
-                        Height="18"
-                        Foreground="White"
-                        Data="M12 3V15.55A4 4 0 1 0 14 19V7H20V3H12Z"/>
+                <PathIcon Width="18" Height="18"
+                          Foreground="White"
+                          Data="M12 3V15.55A4 4 0 1 0 14 19V7H20V3H12Z"/>
             </Button>
             <Button x:Name="ShaderButton"
                     Classes="media"
@@ -192,10 +381,9 @@
                     Height="46"
                     CornerRadius="23"
                     Click="ShaderButton_Click">
-                <PathIcon Width="18"
-                        Height="18"
-                        Foreground="White"
-                        Data="M12 2A10 10 0 0 0 12 22A10 10 0 0 0 12 2M12 4A8 8 0 0 1 12 20A8 8 0 0 1 12 4M11 6V13H13V6M9.27 7.76L7.86 9.17A6 6 0 0 0 6 13A6 6 0 0 0 12 19A6 6 0 0 0 18 13A6 6 0 0 0 16.14 9.17L14.73 7.76A4 4 0 0 1 16 13A4 4 0 0 1 12 17A4 4 0 0 1 8 13A4 4 0 0 1 9.27 7.76Z"/>
+                <PathIcon Width="18" Height="18"
+                          Foreground="White"
+                          Data="M12 2A10 10 0 0 0 12 22A10 10 0 0 0 12 2M12 4A8 8 0 0 1 12 20A8 8 0 0 1 12 4M11 6V13H13V6M9.27 7.76L7.86 9.17A6 6 0 0 0 6 13A6 6 0 0 0 12 19A6 6 0 0 0 18 13A6 6 0 0 0 16.14 9.17L14.73 7.76A4 4 0 0 1 16 13A4 4 0 0 1 12 17A4 4 0 0 1 8 13A4 4 0 0 1 9.27 7.76Z"/>
             </Button>
         </StackPanel>
     </Grid>
