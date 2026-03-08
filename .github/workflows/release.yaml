@@ -9,11 +9,16 @@ on:
       tag:
         description: 'Release tag (e.g. v1.0.0)'
         required: true
+      description:
+        description: 'Release description'
+        required: false
+        default: 'New release'
 
 jobs:
   build:
     runs-on: windows-latest
-    permissions: write-all
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -28,7 +33,7 @@ jobs:
         run: dotnet restore
 
       - name: Publish
-        run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish
+        run: dotnet publish MiloMusicPlayer/MiloMusicPlayer.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish
 
       - name: Zip output
         run: Compress-Archive -Path ./publish/* -DestinationPath ./MiloMusicPlayer-${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}-win-x64.zip
@@ -39,5 +44,6 @@ jobs:
           tag_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
           files: ./MiloMusicPlayer-${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}-win-x64.zip
           name: Milo Music Player ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
+          body: ${{ github.ref_type == 'tag' && 'New release' || inputs.description }}
           draft: false
           prerelease: false
