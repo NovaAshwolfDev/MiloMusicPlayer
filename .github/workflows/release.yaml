@@ -31,10 +31,10 @@ jobs:
 
       - name: Restore dependencies
         run: dotnet restore
-
+        
       - name: Publish
-        run: dotnet publish MiloMusicPlayer/MiloMusicPlayer.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish
-
+        run: dotnet publish MiloMusicPlayer.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish
+              
       - name: Zip output
         run: Compress-Archive -Path ./publish/* -DestinationPath ./MiloMusicPlayer-${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}-win-x64.zip
 
