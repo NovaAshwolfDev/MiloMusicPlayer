@@ -1,0 +1,202 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:MiloMusicPlayer"
+        x:Class="MiloMusicPlayer.MainWindow"
+        Title="MiloMusicPlayer"
+        Width="900"
+        Height="600">
+
+    <Window.Styles>
+        <Style Selector="Window">
+            <Setter Property="Background" Value="#070B14"/>
+        </Style>
+
+        <Style Selector="TextBlock.title">
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#F5FBFF"/>
+        </Style>
+
+        <Style Selector="TextBlock.subtitle">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#C7D9E8"/>
+        </Style>
+
+        <Style Selector="TextBlock.meta">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#7F96AAFF"/>
+        </Style>
+
+        <Style Selector="Button.media">
+            <Setter Property="Background" Value="#1A2233FF"/>
+            <Setter Property="Foreground" Value="#eaf7ff"/>
+            <Setter Property="BorderBrush" Value="#2B3D5DFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style Selector="Button.media:pointerover">
+            <Setter Property="Background" Value="#22304AFF"/>
+            <Setter Property="BorderBrush" Value="#49B9FFFF"/>
+        </Style>
+
+        <Style Selector="Button.media:pressed">
+            <Setter Property="Background" Value="#111827"/>
+        </Style>
+
+        <Style Selector="Button.primaryMedia">
+            <Setter Property="Background" Value="#11243D"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#49B9FF"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+        </Style>
+
+        <Style Selector="Button.primaryMedia:pointerover">
+            <Setter Property="Background" Value="#163154"/>
+            <Setter Property="BorderBrush" Value="#7A5CFF"/>
+        </Style>
+
+        <Style Selector="Button.primaryMedia:pressed">
+            <Setter Property="Background" Value="#0D1D31"/>
+        </Style>
+
+        <Style Selector="Slider">
+            <Setter Property="Foreground" Value="#37B6FF"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid>
+        <local:ShaderBackground
+            x:Name="ShaderBackground"
+            IsVisible="False"
+        />
+
+        <!-- Main Player -->
+        <Border HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="#0D1320"
+                BorderBrush="#20314A"
+                BorderThickness="1"
+                CornerRadius="28"
+                Padding="14">
+
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="8">
+
+                <Border x:Name="SongImageBorder"
+                        CornerRadius="28"
+                        ClipToBounds="True"
+                        Background="#111827"
+                        BorderBrush="#243754"
+                        BorderThickness="1"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                    <Image x:Name="SongImage"
+                           Stretch="Fill"/>
+                </Border>
+
+                <Slider x:Name="ProgressSlider"
+                        Minimum="0"
+                        Maximum="100"
+                        Width="300"
+                        Margin="0,6,0,0"/>
+
+                <TextBlock x:Name="SongPosition"
+                           Classes="meta"
+                           Text="0:00 / 3:40"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"/>
+
+                <TextBlock x:Name="SongTitleText"
+                           Classes="title"
+                           Text="Song Title Goes Here"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"
+                           MaxWidth="560"/>
+
+                <TextBlock x:Name="ArtistText"
+                           Classes="subtitle"
+                           Text="Artist"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"/>
+
+                <TextBlock x:Name="GenreText"
+                           Classes="meta"
+                           Text="Genre"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"/>
+
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            Spacing="16"
+                            Margin="0,18,0,0">
+
+                    <Button x:Name="BackButton"
+                            Classes="media"
+                            Width="48"
+                            Height="48"
+                            CornerRadius="24"
+                            Click="SkipBack_Click">
+                        <PathIcon Width="18"
+                                  Height="18"
+                                  Foreground="White"
+                                  Data="M15,18V6L6.5,12M18,18V6H16V18H18Z"/>
+                    </Button>
+
+                    <Button x:Name="PlayPauseButton"
+                            Classes="primaryMedia"
+                            Width="62"
+                            Height="62"
+                            CornerRadius="31"
+                            Click="PlayPause_Click">
+                        <PathIcon x:Name="PlayPauseIcon"
+                                  Width="22"
+                                  Height="22"
+                                  Foreground="White"
+                                  Data="M8,5V19L19,12L8,5Z"/>
+                    </Button>
+
+                    <Button x:Name="NextButton"
+                            Classes="media"
+                            Width="48"
+                            Height="48"
+                            CornerRadius="24"
+                            Click="SkipForward_Click">
+                        <PathIcon Width="18"
+                                  Height="18"
+                                  Foreground="White"
+                                  Data="M9,6V18L17.5,12M8,6H6V18H8V6Z"/>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <StackPanel HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Margin="16"
+                    Spacing="8">
+            <Button x:Name="LibraryButton"
+                    Classes="media"
+                    Width="46"
+                    Height="46"
+                    CornerRadius="23"
+                    Click="LibraryButton_Click">
+                <PathIcon Width="18"
+                        Height="18"
+                        Foreground="White"
+                        Data="M12 3V15.55A4 4 0 1 0 14 19V7H20V3H12Z"/>
+            </Button>
+            <Button x:Name="ShaderButton"
+                    Classes="media"
+                    Width="46"
+                    Height="46"
+                    CornerRadius="23"
+                    Click="ShaderButton_Click">
+                <PathIcon Width="18"
+                        Height="18"
+                        Foreground="White"
+                        Data="M12 2A10 10 0 0 0 12 22A10 10 0 0 0 12 2M12 4A8 8 0 0 1 12 20A8 8 0 0 1 12 4M11 6V13H13V6M9.27 7.76L7.86 9.17A6 6 0 0 0 6 13A6 6 0 0 0 12 19A6 6 0 0 0 18 13A6 6 0 0 0 16.14 9.17L14.73 7.76A4 4 0 0 1 16 13A4 4 0 0 1 12 17A4 4 0 0 1 8 13A4 4 0 0 1 9.27 7.76Z"/>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>
