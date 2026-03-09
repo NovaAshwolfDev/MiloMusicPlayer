@@ -110,8 +110,6 @@ public class ShaderBackground : Control
                 builder.Uniforms[$"iBand{i}"] = value;
             }
             
-            Console.WriteLine(string.Join(", ", _bands));
-
             using var shader = builder.Build();
             using var paint = new SKPaint
             {

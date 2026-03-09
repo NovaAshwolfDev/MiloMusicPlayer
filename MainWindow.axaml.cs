@@ -68,7 +68,7 @@ public partial class MainWindow : Window
         };
 
         ProgressSlider.PropertyChanged += ProgressSliderChanged;
-        timer.Interval = TimeSpan.FromMilliseconds(500);
+        timer.Interval = TimeSpan.FromMilliseconds(34 / 2.0);
         timer.Tick += UpdatePlaybackTime;
         timer.Start();
     }
@@ -171,7 +171,7 @@ public partial class MainWindow : Window
             double target = player.Position.TotalSeconds / player.Duration.TotalSeconds * 100;
 
             updatingSlider = true;
-            ProgressSlider.Value = Helpers.Lerp(ProgressSlider.Value, target, 0.25);
+            ProgressSlider.Value = Helpers.Lerp(ProgressSlider.Value, target, 0.3);
             updatingSlider = false;
         }
 

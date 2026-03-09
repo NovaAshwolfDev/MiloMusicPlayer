@@ -84,3 +84,4 @@ I:\Drive\Coding\CSharp\MiloMusicPlayer\bin\Debug\net10.0\runtimes\win-x86\native
 I:\Drive\Coding\CSharp\MiloMusicPlayer\bin\Debug\net10.0\DiscordRPC.dll
 I:\Drive\Coding\CSharp\MiloMusicPlayer\bin\Debug\net10.0\Newtonsoft.Json.dll
 I:\Drive\Coding\CSharp\MiloMusicPlayer\obj\Debug\net10.0\MiloMusicPlayer.sourcelink.json
+I:\Drive\Coding\CSharp\MiloMusicPlayer\bin\Debug\net10.0\Assets\icon.ico
