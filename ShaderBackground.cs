@@ -18,7 +18,6 @@ public class ShaderBackground : Control
     private SKRuntimeEffect? _effect;
     private string? _shaderError;
 
-    // Set this from MainWindow on each timer tick
     public float[] FftBands { get; set; } = new float[8];
 
     public ShaderBackground()
@@ -63,7 +62,6 @@ public class ShaderBackground : Control
         }
 
         float time = (float)(DateTime.UtcNow - _startTime).TotalSeconds;
-        // Snapshot bands so the draw op has a stable copy
         var bands = (float[])FftBands.Clone();
         context.Custom(new ShaderDrawOperation(Bounds, _effect, time, bands));
     }
@@ -103,7 +101,6 @@ public class ShaderBackground : Control
                 (float)_bounds.Width,
                 (float)_bounds.Height
             };
-            // Pass 8 FFT bands to the shader
             for (int i = 0; i < 8; i++)
             {
                 float value = i < _bands.Length ? _bands[i] : 0f;

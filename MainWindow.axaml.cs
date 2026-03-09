@@ -156,7 +156,6 @@ public partial class MainWindow : Window
             SongImageBorder.Height = 300;
         }
 
-        // Update art server and Discord RPC
         await _artServer.SetArt(artBytes);
         Console.WriteLine("Art URL: " + _artServer.Url);
         _rpc.UpdatePresence(songs[index], TimeSpan.Zero, player.Duration, _artServer.Url);
@@ -296,8 +295,6 @@ public partial class MainWindow : Window
         _libraryReady = false;
         LibraryView.IsVisible = true;
 
-        // animate right margin: 16 (visible at right edge) to -62 (off screen right) for player
-        // LibraryButton slides from left (16) to right edge (Bounds.Width - 90)
         double targetRight = 16;
         double startLeft = LibraryButton.Margin.Left;
         double startBottom = LibraryButton.Margin.Bottom;
