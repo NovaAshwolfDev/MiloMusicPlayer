@@ -1,25 +1,29 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace MiloMusicPlayer.Scripting;
 
-
 public sealed class HostApi
 {
-    private readonly RuntimeScope   _scope;
+    private readonly RuntimeScope    _scope;
     private readonly TypeEnvironment _types;
 
-    public Action<string>?                LogHandler         { get; set; }
-    public Func<PlayerState>?             GetPlayerState     { get; set; }
-    public Func<float>?                   GetVolume          { get; set; }
-    public Action<float>?                 SetVolume          { get; set; }
-    public Action?                        RequestPlay        { get; set; }
-    public Action?                        RequestPause       { get; set; }
-    public Action?                        RequestNext        { get; set; }
-    public Action?                        RequestPrev        { get; set; }
-    public Func<List<TrackInfo>>?         GetQueue           { get; set; }
-    public Action<string>?                QueueTrackByPath   { get; set; }
+    public string ModFolderPath { get; set; } = "";
+
+    public Action<string>?        LogHandler       { get; set; }
+    public Func<PlayerState>?     GetPlayerState   { get; set; }
+    public Func<float>?           GetVolume        { get; set; }
+    public Action<float>?         SetVolume        { get; set; }
+    public Action?                RequestPlay      { get; set; }
+    public Action?                RequestPause     { get; set; }
+    public Action?                RequestNext      { get; set; }
+    public Action?                RequestPrev      { get; set; }
+    public Func<List<TrackInfo>>? GetQueue         { get; set; }
+    public Action<string>?        QueueTrackByPath { get; set; }
+    public Action<string>?        PlaySound        { get; set; }
+    public Action<string>?        PlayTrack        { get; set; }
 
     public HostApi(RuntimeScope scope, TypeEnvironment types)
     {
@@ -33,23 +37,33 @@ public sealed class HostApi
         RegisterGlobalFunctions();
     }
 
-
     private void RegisterTypes()
     {
+        var listType = new ClassType("List");
+        listType.TypeParams.Add("T");
+        _types.Register(listType);
+
         var trackClass = new ClassType("Track");
         trackClass.Fields["title"]    = PrimitiveType.String;
         trackClass.Fields["artist"]   = PrimitiveType.String;
         trackClass.Fields["album"]    = PrimitiveType.String;
         trackClass.Fields["genre"]    = PrimitiveType.String;
-        trackClass.Fields["duration"] = PrimitiveType.Float;   
+        trackClass.Fields["duration"] = PrimitiveType.Float;
         trackClass.Fields["path"]     = PrimitiveType.String;
         _types.Register(trackClass);
 
         var stateClass = new ClassType("PlayerState");
-        stateClass.Fields["isPlaying"]    = PrimitiveType.Bool;
-        stateClass.Fields["volume"]       = PrimitiveType.Float;
-        stateClass.Fields["position"]     = PrimitiveType.Float;   
+        stateClass.Fields["isPlaying"] = PrimitiveType.Bool;
+        stateClass.Fields["volume"]    = PrimitiveType.Float;
+        stateClass.Fields["position"]  = PrimitiveType.Float;
         _types.Register(stateClass);
+
+        var pathsClass = new ClassType("Paths");
+        pathsClass.Fields["music"]  = PrimitiveType.String;
+        pathsClass.Fields["sounds"] = PrimitiveType.String;
+        pathsClass.Fields["images"] = PrimitiveType.String;
+        pathsClass.Methods["join"]  = new FunctionType(new() { PrimitiveType.String, PrimitiveType.String }, PrimitiveType.String);
+        _types.Register(pathsClass);
 
         var imod = new InterfaceType("IMod");
         RegisterIModMethods(imod);
@@ -71,21 +85,14 @@ public sealed class HostApi
     private void RegisterIModMethods(InterfaceType imod)
     {
         var trackType = (ClassType)_types.Resolve("Track")!;
-
         imod.Methods["onLoad"]         = new FunctionType(new(), PrimitiveType.Void);
         imod.Methods["onUnload"]       = new FunctionType(new(), PrimitiveType.Void);
         imod.Methods["onPlay"]         = new FunctionType(new() { trackType }, PrimitiveType.Void);
         imod.Methods["onPause"]        = new FunctionType(new(), PrimitiveType.Void);
         imod.Methods["onTrackChange"]  = new FunctionType(new() { trackType }, PrimitiveType.Void);
         imod.Methods["onVolumeChange"] = new FunctionType(new() { PrimitiveType.Float }, PrimitiveType.Void);
-        imod.Methods["update"] = new FunctionType(new() { PrimitiveType.Float }, PrimitiveType.Void);
+        imod.Methods["update"]         = new FunctionType(new() { PrimitiveType.Float }, PrimitiveType.Void);
     }
-
-    private static ClassType BuildTrackType()
-    {
-        return new ClassType("Track");
-    }
-
 
     private void RegisterGlobalFunctions()
     {
@@ -96,20 +103,17 @@ public sealed class HostApi
             return NullValue.Instance;
         });
 
-        RegisterFn("toString", args =>
-        {
-            return new StringValue(args.Count > 0 ? args[0].Display() : "null");
-        });
+        RegisterFn("toString", args => new StringValue(args.Count > 0 ? args[0].Display() : "null"));
 
         RegisterFn("toInt", args =>
         {
             if (args.Count == 0) return new IntValue(0);
             return args[0] switch
             {
-                IntValue   iv => iv,
-                FloatValue fv => new IntValue((int)fv.Value),
-                StringValue sv when int.TryParse(sv.Value, out var n) => new IntValue(n),
-                _ => new IntValue(0)
+                IntValue    iv                                                    => iv,
+                FloatValue  fv                                                    => new IntValue((int)fv.Value),
+                StringValue sv when int.TryParse(sv.Value, out var n)             => new IntValue(n),
+                _                                                                 => new IntValue(0)
             };
         });
 
@@ -118,30 +122,21 @@ public sealed class HostApi
             if (args.Count == 0) return new FloatValue(0f);
             return args[0] switch
             {
-                FloatValue fv => fv,
-                IntValue   iv => new FloatValue(iv.Value),
+                FloatValue  fv                                                                         => fv,
+                IntValue    iv                                                                         => new FloatValue(iv.Value),
                 StringValue sv when float.TryParse(sv.Value,
                     System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out var f) => new FloatValue(f),
-                _ => new FloatValue(0f)
+                    System.Globalization.CultureInfo.InvariantCulture, out var f) => new FloatValue(f),
+                _                                                                                      => new FloatValue(0f)
             };
         });
 
-
-        RegisterFn("play", _ => { RequestPlay?.Invoke(); return NullValue.Instance; });
-
+        RegisterFn("play",  _ => { RequestPlay?.Invoke();  return NullValue.Instance; });
         RegisterFn("pause", _ => { RequestPause?.Invoke(); return NullValue.Instance; });
+        RegisterFn("next",  _ => { RequestNext?.Invoke();  return NullValue.Instance; });
+        RegisterFn("prev",  _ => { RequestPrev?.Invoke();  return NullValue.Instance; });
 
-        RegisterFn("next", _ => { RequestNext?.Invoke(); return NullValue.Instance; });
-
-        RegisterFn("prev", _ => { RequestPrev?.Invoke(); return NullValue.Instance; });
-
-        RegisterFn("getVolume", _ =>
-        {
-            var vol = GetVolume?.Invoke() ?? 1f;
-            return new FloatValue(vol);
-        });
+        RegisterFn("getVolume", _ => new FloatValue(GetVolume?.Invoke() ?? 1f));
 
         RegisterFn("setVolume", args =>
         {
@@ -166,7 +161,6 @@ public sealed class HostApi
             var tracks    = GetQueue?.Invoke() ?? new List<TrackInfo>();
             var trackType = (ClassType)_types.Resolve("Track")!;
             var list      = new ListValue();
-
             foreach (var t in tracks)
             {
                 var inst = new InstanceValue(trackType);
@@ -178,7 +172,6 @@ public sealed class HostApi
                 inst.Fields["path"]     = new StringValue(t.Path);
                 list.Items.Add(inst);
             }
-
             return list;
         });
 
@@ -188,6 +181,36 @@ public sealed class HostApi
                 QueueTrackByPath?.Invoke(sv.Value);
             return NullValue.Instance;
         });
+
+        RegisterFn("playTrack", args =>
+        {
+            if (args.Count > 0 && args[0] is StringValue sv)
+                PlayTrack?.Invoke(sv.Value);
+            return NullValue.Instance;
+        });
+
+        RegisterFn("playSound", args =>
+        {
+            if (args.Count > 0 && args[0] is StringValue sv)
+                PlaySound?.Invoke(sv.Value);
+            return NullValue.Instance;
+        });
+
+        RegisterFn("listSize", args =>
+        {
+            if (args.Count > 0 && args[0] is ListValue lv)
+                return new IntValue(lv.Items.Count);
+            return new IntValue(0);
+        });
+
+        RegisterFn("contains", args =>
+        {
+            if (args.Count < 2) return BoolValue.False;
+            var str = (args[0] as StringValue)?.Value ?? "";
+            var sub = (args[1] as StringValue)?.Value ?? "";
+            return str.Contains(sub) ? BoolValue.True : BoolValue.False;
+        });
+
         RegisterFn("now",       _ => new StringValue(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")));
         RegisterFn("timestamp", _ => new FloatValue((float)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000f));
         RegisterFn("year",      _ => new IntValue(DateTime.Now.Year));
@@ -196,13 +219,25 @@ public sealed class HostApi
         RegisterFn("hour",      _ => new IntValue(DateTime.Now.Hour));
         RegisterFn("minute",    _ => new IntValue(DateTime.Now.Minute));
         RegisterFn("second",    _ => new IntValue(DateTime.Now.Second));
+
+        // Paths object — scoped to the mod's own folder
+        var pathsType = (ClassType)_types.Resolve("Paths")!;
+        var pathsInst = new InstanceValue(pathsType);
+        pathsInst.Fields["music"]  = new StringValue(Path.Combine(ModFolderPath, "Music"));
+        pathsInst.Fields["sounds"] = new StringValue(Path.Combine(ModFolderPath, "Sounds"));
+        pathsInst.Fields["images"] = new StringValue(Path.Combine(ModFolderPath, "Images"));
+        pathsInst.Fields["__method_join"] = new NativeFunctionValue("join", args =>
+        {
+            var parts = args.OfType<StringValue>().Select(s => s.Value).ToArray();
+            return new StringValue(parts.Length > 0 ? Path.Combine(parts) : "");
+        });
+        _scope.Define("Paths", pathsInst);
     }
 
     private void RegisterFn(string name, Func<List<MiloValue>, MiloValue> fn)
     {
         _scope.Define(name, new NativeFunctionValue(name, fn));
     }
-
 
     public InstanceValue TrackToInstance(TrackInfo track)
     {
@@ -217,7 +252,6 @@ public sealed class HostApi
         return inst;
     }
 }
-
 
 public sealed class TrackInfo
 {

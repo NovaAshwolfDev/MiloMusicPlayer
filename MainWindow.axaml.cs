@@ -73,7 +73,15 @@ public partial class MainWindow : Window
             Duration = (float)player.Duration.TotalSeconds,
             Path     = s.FilePath
         }).ToList();
-
+        _modLoader.PlayTrack = path =>
+        {
+            var index = songs.FindIndex(s => s.FilePath == path);
+            if (index >= 0)
+            {
+                curSongIndex = index;
+                Dispatcher.UIThread.Post(() => PlaySong(curSongIndex));
+            }
+        };
         _modLoader.LoadAll();
 
         if (songs.Count == 0)

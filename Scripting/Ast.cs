@@ -215,3 +215,13 @@ public sealed class ScriptFile : AstNode
     public string     FilePath   { get; init; } = "";
     public List<Stmt> Statements { get; init; } = new();
 }
+public sealed class ListLiteralExpr : Expr
+{
+    public List<Expr> Items { get; init; } = new();
+}
+
+public sealed class IndexExpr : Expr
+{
+    public Expr Object { get; init; } = null!;
+    public Expr Index  { get; init; } = null!;
+}

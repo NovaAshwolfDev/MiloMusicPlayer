@@ -457,9 +457,10 @@ public sealed class TypeChecker
         for (int i = 0; i < method.Params.Count; i++)
             methodScope.Define(method.Params[i].Name, sig.ParamTypes[i]);
 
+        foreach (var m in classType.Methods)
+            methodScope.Define(m.Key, m.Value);
         var prevReturn = _currentReturnType;
         _currentReturnType = sig.ReturnType;
-
         CheckBlock(method.Body!, methodScope);
 
         _currentReturnType = prevReturn;
@@ -555,6 +556,8 @@ public sealed class TypeChecker
                 StringLiteralExpr => PrimitiveType.String,
                 BoolLiteralExpr   => PrimitiveType.Bool,
                 NullLiteralExpr   => PrimitiveType.Null,
+                ListLiteralExpr lle => InferListLiteral(lle, scope),
+                IndexExpr ie => InferIndex(ie, scope),
 
                 VariableExpr ve   => InferVariable(ve, scope),
                 ThisExpr te       => InferThis(te),
@@ -580,6 +583,21 @@ public sealed class TypeChecker
         }
     }
 
+    private MiloType InferListLiteral(ListLiteralExpr lle, Scope scope)
+    {
+        foreach (var item in lle.Items)
+            InferExpr(item, scope);
+        return _env.Resolve("List") ?? UnknownType.Instance;
+    }
+    
+    private MiloType InferIndex(IndexExpr ie, Scope scope)
+    {
+        InferExpr(ie.Object, scope);
+        var indexType = InferExpr(ie.Index, scope);
+        AssertType(indexType, PrimitiveType.Int, ie.Index, "Index must be Int");
+        return UnknownType.Instance;
+    }
+    
     private MiloType InferVariable(VariableExpr ve, Scope scope)
     {
         var type = scope.Lookup(ve.Name);
@@ -702,6 +720,9 @@ public sealed class TypeChecker
     private MiloType InferGet(GetExpr ge, Scope scope)
     {
         var objType = InferExpr(ge.Object, scope);
+
+        if (objType is UnknownType)
+            return UnknownType.Instance;
 
         if (objType is ClassType ct)
         {

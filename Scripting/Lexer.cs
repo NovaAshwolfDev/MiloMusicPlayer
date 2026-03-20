@@ -23,6 +23,9 @@ public sealed class Lexer
     {
         ["var"]       = TokenType.Var,
         ["fun"]       = TokenType.Fun,
+        ["func"]      = TokenType.Fun,
+        ["fn"]        = TokenType.Fun,
+        ["function"]  = TokenType.Fun,
         ["class"]     = TokenType.Class,
         ["interface"] = TokenType.Interface,
         ["enum"]      = TokenType.Enum,

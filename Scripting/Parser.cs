@@ -543,7 +543,16 @@ public sealed class Parser
                 var args  = ParseArgList();
                 Consume(TokenType.RightParen, "Expected ')' after arguments");
                 expr = new CallExpr { Callee = expr, Arguments = args, Line = paren.Line, Column = paren.Column };
+            } 
+            
+            else if (Check(TokenType.LeftBracket))
+            {
+                var tok   = Advance();
+                var index = ParseExpression();
+                Consume(TokenType.RightBracket, "Expected ']' after index");
+                expr = new IndexExpr { Object = expr, Index = index, Line = tok.Line, Column = tok.Column };
             }
+
             else if (Check(TokenType.Dot))
             {
                 var dot  = Advance();
@@ -626,6 +635,28 @@ public sealed class Parser
         {
             var tok = Advance();
             return new VariableExpr { Name = tok.Lexeme, Line = tok.Line, Column = tok.Column };
+        }
+        
+        if (Check(TokenType.LeftBracket))
+        {
+            var tok  = Advance();
+            var items = new List<Expr>();
+
+            if (!Check(TokenType.RightBracket))
+            {
+                items.Add(ParseExpression());
+                while (Match(TokenType.Comma))
+                    items.Add(ParseExpression());
+            }
+
+            Consume(TokenType.RightBracket, "Expected ']' after list literal");
+
+            return new ListLiteralExpr
+            {
+                Items  = items,
+                Line   = tok.Line,
+                Column = tok.Column
+            };
         }
 
         throw Error($"Unexpected token '{Peek().Lexeme}' in expression");

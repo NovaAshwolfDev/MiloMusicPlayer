@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace MiloMusicPlayer.Scripting;
 
@@ -26,7 +27,7 @@ public sealed class LoadedMod
     public FunctionValue? OnPause        { get; set; }
     public FunctionValue? OnTrackChange  { get; set; }
     public FunctionValue? OnVolumeChange { get; set; }
-    public FunctionValue? Update { get; set; }
+    public FunctionValue? Update         { get; set; }
 
     public LoadedMod(ModManifest manifest, string folderPath)
     {
@@ -37,10 +38,10 @@ public sealed class LoadedMod
 
 public sealed class ModLoader
 {
-    private readonly string          _modsDirectory;
-    private readonly List<LoadedMod> _loadedMods = new();
-    private readonly System.Timers.Timer _updateTimer = new(16);
-    private DateTime _lastUpdate = DateTime.UtcNow;
+    private readonly string               _modsDirectory;
+    private readonly List<LoadedMod>      _loadedMods  = new();
+    private readonly System.Timers.Timer  _updateTimer = new(16);
+    private DateTime                      _lastUpdate  = DateTime.UtcNow;
 
     public Action<string>?        Log            { get; set; }
     public Func<PlayerState>?     GetPlayerState { get; set; }
@@ -52,7 +53,7 @@ public sealed class ModLoader
     public Action?                RequestPrev    { get; set; }
     public Func<List<TrackInfo>>? GetQueue       { get; set; }
     public Action<string>?        QueueTrack     { get; set; }
-    
+    public Action<string>?        PlayTrack      { get; set; }
 
     public IReadOnlyList<LoadedMod> LoadedMods => _loadedMods;
 
@@ -128,24 +129,14 @@ public sealed class ModLoader
             var source = File.ReadAllText(filePath);
 
             List<Token> tokens;
-            try
-            {
-                tokens = new Lexer(source).Tokenize();
-            }
+            try   { tokens = new Lexer(source).Tokenize(); }
             catch (LexerException ex)
-            {
-                throw new Exception($"Lexer error in '{Path.GetFileName(filePath)}': {ex.Message}");
-            }
+                  { throw new Exception($"Lexer error in '{Path.GetFileName(filePath)}': {ex.Message}"); }
 
             ScriptFile scriptFile;
-            try
-            {
-                scriptFile = new Parser(tokens).Parse(filePath);
-            }
+            try   { scriptFile = new Parser(tokens).Parse(filePath); }
             catch (ParseException ex)
-            {
-                throw new Exception($"Parse error in '{Path.GetFileName(filePath)}': {ex.Message}");
-            }
+                  { throw new Exception($"Parse error in '{Path.GetFileName(filePath)}': {ex.Message}"); }
 
             parsedFiles.Add(scriptFile);
         }
@@ -154,19 +145,61 @@ public sealed class ModLoader
         var globalScope = new RuntimeScope();
 
         var hostApi = new HostApi(globalScope, typeEnv);
-        hostApi.LogHandler       = msg => Log?.Invoke($"[Script] {msg}");
-        hostApi.GetPlayerState   = GetPlayerState;
-        hostApi.GetVolume        = GetVolume;
-        hostApi.SetVolume        = SetVolume;
-        hostApi.RequestPlay      = RequestPlay;
-        hostApi.RequestPause     = RequestPause;
-        hostApi.RequestNext      = RequestNext;
-        hostApi.RequestPrev      = RequestPrev;
-        hostApi.GetQueue         = GetQueue;
+        hostApi.ModFolderPath  = folderPath;
+        hostApi.LogHandler     = msg => Log?.Invoke($"[Script] {msg}");
+        hostApi.GetPlayerState = GetPlayerState;
+        hostApi.GetVolume      = GetVolume;
+        hostApi.SetVolume      = SetVolume;
+        hostApi.RequestPlay    = RequestPlay;
+        hostApi.RequestPause   = RequestPause;
+        hostApi.RequestNext    = RequestNext;
+        hostApi.RequestPrev    = RequestPrev;
+        hostApi.GetQueue       = GetQueue;
         hostApi.QueueTrackByPath = QueueTrack;
+        hostApi.PlayTrack      = path => PlayTrack?.Invoke(path);
+        hostApi.PlaySound      = path =>
+        {
+            Log?.Invoke($"[Script] playSound path: '{path}'");
+            try
+            {
+                if (!File.Exists(path))
+                {
+                    Log?.Invoke($"[Script] playSound: file not found at '{path}'");
+                    return;
+                }
+
+                var ext = Path.GetExtension(path).ToLowerInvariant();
+                NAudio.Wave.WaveStream reader = ext switch
+                {
+                    ".ogg" => new NAudio.Vorbis.VorbisWaveReader(path),
+                    _      => new NAudio.Wave.AudioFileReader(path)
+                };
+
+                var enumerator = new NAudio.CoreAudioApi.MMDeviceEnumerator();
+                var device     = enumerator.GetDefaultAudioEndpoint(
+                    NAudio.CoreAudioApi.DataFlow.Render,
+                    NAudio.CoreAudioApi.Role.Multimedia);
+
+                using var output = new NAudio.Wave.WasapiOut(
+                    device, NAudio.CoreAudioApi.AudioClientShareMode.Shared, true, 200);
+
+                output.Init(reader);
+                output.Play();
+
+                while (output.PlaybackState == NAudio.Wave.PlaybackState.Playing)
+                    System.Threading.Thread.Sleep(50);
+
+                reader.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Log?.Invoke($"[Script] playSound error: {ex.Message}");
+            }
+        };
+
         hostApi.Register();
 
-        var typeScope   = new Scope();
+        var typeScope = new Scope();
         RegisterHostGlobalsToScope(typeScope, typeEnv);
 
         var typeChecker = new TypeChecker(typeEnv);
@@ -183,14 +216,9 @@ public sealed class ModLoader
         var interpreter = new Interpreter(globalScope);
         foreach (var scriptFile in parsedFiles)
         {
-            try
-            {
-                interpreter.Execute(scriptFile);
-            }
+            try   { interpreter.Execute(scriptFile); }
             catch (RuntimeException ex)
-            {
-                throw new Exception($"Runtime error in '{manifest.Name}': {ex.Message}");
-            }
+                  { throw new Exception($"Runtime error in '{manifest.Name}': {ex.Message}"); }
         }
 
         if (!globalScope.IsDefined("mod"))
@@ -218,7 +246,8 @@ public sealed class ModLoader
     private static void RegisterHostGlobalsToScope(Scope scope, TypeEnvironment typeEnv)
     {
         var voidFn    = new FunctionType(new(), PrimitiveType.Void);
-        var trackType = (ClassType)typeEnv.Resolve("Track")!;
+        var listType  = (ClassType)typeEnv.Resolve("List")!;
+        var pathsType = (ClassType)typeEnv.Resolve("Paths")!;
 
         scope.Define("log",            new FunctionType(new() { UnknownType.Instance }, PrimitiveType.Void));
         scope.Define("toString",       new FunctionType(new() { UnknownType.Instance }, PrimitiveType.String));
@@ -231,17 +260,21 @@ public sealed class ModLoader
         scope.Define("getVolume",      new FunctionType(new(), PrimitiveType.Float));
         scope.Define("setVolume",      new FunctionType(new() { PrimitiveType.Float }, PrimitiveType.Void));
         scope.Define("getPlayerState", new FunctionType(new(), (MiloType)typeEnv.Resolve("PlayerState")!));
-        scope.Define("getQueue",       new FunctionType(new(), PrimitiveType.Void));
+        scope.Define("getQueue",       new FunctionType(new(), listType));
         scope.Define("queueTrack",     new FunctionType(new() { PrimitiveType.String }, PrimitiveType.Void));
-        scope.Define("update", new FunctionType(new() { PrimitiveType.Float }, PrimitiveType.Void));
-        scope.Define("now",       new FunctionType(new(), PrimitiveType.String));
-        scope.Define("timestamp", new FunctionType(new(), PrimitiveType.Float));
-        scope.Define("year",      new FunctionType(new(), PrimitiveType.Int));
-        scope.Define("month",     new FunctionType(new(), PrimitiveType.Int));
-        scope.Define("day",       new FunctionType(new(), PrimitiveType.Int));
-        scope.Define("hour",      new FunctionType(new(), PrimitiveType.Int));
-        scope.Define("minute",    new FunctionType(new(), PrimitiveType.Int));
-        scope.Define("second",    new FunctionType(new(), PrimitiveType.Int));
+        scope.Define("playTrack",      new FunctionType(new() { PrimitiveType.String }, PrimitiveType.Void));
+        scope.Define("playSound",      new FunctionType(new() { PrimitiveType.String }, PrimitiveType.Void));
+        scope.Define("listSize",       new FunctionType(new() { UnknownType.Instance }, PrimitiveType.Int));
+        scope.Define("contains",       new FunctionType(new() { PrimitiveType.String, PrimitiveType.String }, PrimitiveType.Bool));
+        scope.Define("now",            new FunctionType(new(), PrimitiveType.String));
+        scope.Define("timestamp",      new FunctionType(new(), PrimitiveType.Float));
+        scope.Define("year",           new FunctionType(new(), PrimitiveType.Int));
+        scope.Define("month",          new FunctionType(new(), PrimitiveType.Int));
+        scope.Define("day",            new FunctionType(new(), PrimitiveType.Int));
+        scope.Define("hour",           new FunctionType(new(), PrimitiveType.Int));
+        scope.Define("minute",         new FunctionType(new(), PrimitiveType.Int));
+        scope.Define("second",         new FunctionType(new(), PrimitiveType.Int));
+        scope.Define("Paths",          pathsType);
     }
 
     private static void ResolveHook(InstanceValue inst, string name, Action<FunctionValue> setter)
@@ -255,7 +288,7 @@ public sealed class ModLoader
     {
         foreach (var mod in _loadedMods)
         {
-            try { FireHook(mod, mod.OnUnload, new List<MiloValue>(), mod.Manifest.Name); }
+            try   { FireHook(mod, mod.OnUnload, new List<MiloValue>(), mod.Manifest.Name); }
             catch (Exception ex) { Log?.Invoke($"[ModLoader] Error unloading '{mod.Manifest.Name}': {ex.Message}"); }
         }
         _updateTimer.Stop();
@@ -284,9 +317,8 @@ public sealed class ModLoader
 
     public void FireOnVolumeChange(float volume)
     {
-        var val = new FloatValue(volume);
         foreach (var mod in _loadedMods)
-            FireHook(mod, mod.OnVolumeChange, new List<MiloValue> { val }, mod.Manifest.Name);
+            FireHook(mod, mod.OnVolumeChange, new List<MiloValue> { new FloatValue(volume) }, mod.Manifest.Name);
     }
 
     private static InstanceValue BuildTrackInstance(TrackInfo track)
@@ -312,18 +344,15 @@ public sealed class ModLoader
             if (mod.ModInstance is not null)
             {
                 callScope.Define("this", mod.ModInstance);
-
                 foreach (var (fieldName, fieldValue) in mod.ModInstance.Fields)
-                {
                     if (!fieldName.StartsWith("__method_"))
                         callScope.Define(fieldName, fieldValue);
-                }
             }
 
             for (int i = 0; i < hook.Params.Count && i < args.Count; i++)
                 callScope.Define(hook.Params[i].Name, args[i]);
-            var interpreter = new Interpreter(hook.Closure);
 
+            var interpreter = new Interpreter(hook.Closure);
             try
             {
                 foreach (var stmt in hook.Body.Statements)

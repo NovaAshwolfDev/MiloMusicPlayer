@@ -320,8 +320,10 @@ public sealed partial class Interpreter
             StringLiteralExpr sle => new StringValue(sle.Value),
             BoolLiteralExpr   ble => ble.Value ? BoolValue.True : BoolValue.False,
             NullLiteralExpr       => NullValue.Instance,
-
-            VariableExpr ve => scope.Get(ve.Name),
+            ListLiteralExpr lle => EvalListLiteral(lle, scope),
+            IndexExpr ie => EvalIndex(ie, scope),
+            
+            VariableExpr ve => EvalVariable(ve, scope),
             ThisExpr        => scope.Get("this"),
             GroupExpr ge    => EvalExpr(ge.Inner, scope),
             AssignExpr ae   => EvalAssign(ae, scope),
@@ -335,6 +337,48 @@ public sealed partial class Interpreter
 
             _ => throw new RuntimeException($"Unknown expression '{expr.GetType().Name}'", expr.Line, expr.Column)
         };
+    }
+    private MiloValue EvalListLiteral(ListLiteralExpr lle, RuntimeScope scope)
+    {
+        var list = new ListValue();
+        foreach (var item in lle.Items)
+            list.Items.Add(EvalExpr(item, scope));
+        return list;
+    }    
+
+    private MiloValue EvalIndex(IndexExpr ie, RuntimeScope scope)
+    {
+        var obj   = EvalExpr(ie.Object, scope);
+        var index = EvalExpr(ie.Index, scope);
+
+        if (obj is ListValue list)
+        {
+            if (index is not IntValue iv)
+                throw new RuntimeException("List index must be an Int", ie.Line, ie.Column);
+
+            if (iv.Value < 0 || iv.Value >= list.Items.Count)
+                throw new RuntimeException(
+                    $"Index {iv.Value} out of range (list has {list.Items.Count} items)",
+                    ie.Line, ie.Column);
+
+            return list.Items[iv.Value];
+        }
+
+        if (obj is StringValue sv)
+        {
+            if (index is not IntValue iv2)
+                throw new RuntimeException("String index must be an Int", ie.Line, ie.Column);
+
+            if (iv2.Value < 0 || iv2.Value >= sv.Value.Length)
+                throw new RuntimeException(
+                    $"Index {iv2.Value} out of range (string has {sv.Value.Length} chars)",
+                    ie.Line, ie.Column);
+
+            return new StringValue(sv.Value[iv2.Value].ToString());
+        }
+
+        throw new RuntimeException(
+            $"Cannot index into type '{obj.Display()}'", ie.Line, ie.Column);
     }
 
     private MiloValue EvalAssign(AssignExpr ae, RuntimeScope scope)
@@ -514,6 +558,24 @@ public sealed partial class Interpreter
     private MiloValue EvalLambda(LambdaExpr le, RuntimeScope scope)
     {
         return new FunctionValue("<lambda>", le.Params, le.Body, scope);
+    }
+    
+    private MiloValue EvalVariable(VariableExpr ve, RuntimeScope scope)
+    {
+        if (scope.IsDefined(ve.Name))
+            return scope.Get(ve.Name);
+
+        if (scope.IsDefined("this") && scope.Get("this") is InstanceValue inst)
+        {
+            var methodKey = $"__method_{ve.Name}";
+            if (inst.Fields.TryGetValue(methodKey, out var method))
+                return method;
+
+            if (inst.Fields.TryGetValue(ve.Name, out var field))
+                return field;
+        }
+
+        throw new RuntimeException($"Undefined variable '{ve.Name}'", ve.Line, ve.Column);
     }
 
     private static bool IsTruthy(MiloValue value) => value switch
