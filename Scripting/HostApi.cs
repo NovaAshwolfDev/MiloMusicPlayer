@@ -220,7 +220,6 @@ public sealed class HostApi
         RegisterFn("minute",    _ => new IntValue(DateTime.Now.Minute));
         RegisterFn("second",    _ => new IntValue(DateTime.Now.Second));
 
-        // Paths object — scoped to the mod's own folder
         var pathsType = (ClassType)_types.Resolve("Paths")!;
         var pathsInst = new InstanceValue(pathsType);
         pathsInst.Fields["music"]  = new StringValue(Path.Combine(ModFolderPath, "Music"));

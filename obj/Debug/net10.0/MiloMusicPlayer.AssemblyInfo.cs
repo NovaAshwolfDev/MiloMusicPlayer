@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MiloMusicPlayer")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a39e86f51aaa94a160b29737b2e32f89baf975ab")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+29ea696656342f2ae017de1c9adb490e5ae4d635")]
 [assembly: System.Reflection.AssemblyProductAttribute("MiloMusicPlayer")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MiloMusicPlayer")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
