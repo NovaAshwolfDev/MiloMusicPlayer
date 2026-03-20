@@ -359,6 +359,16 @@ public sealed class ModLoader
                     interpreter.EvalHookStmt(stmt, callScope);
             }
             catch (ReturnSignal) { }
+
+            // Write field mutations back to the instance after the hook runs
+            if (mod.ModInstance is not null)
+            {
+                foreach (var fieldName in mod.ModInstance.Fields.Keys.ToList())
+                {
+                    if (!fieldName.StartsWith("__method_") && callScope.IsDefined(fieldName))
+                        mod.ModInstance.Fields[fieldName] = callScope.Get(fieldName);
+                }
+            }
         }
         catch (RuntimeException ex)
         {
