@@ -24,7 +24,6 @@ public class FftProvider : ISampleProvider
         _window = new float[fftLength];
         FftData = new float[fftLength / 2];
 
-        // Hann window
         for (int i = 0; i < fftLength; i++)
             _window[i] = (float)(0.5 * (1 - Math.Cos(2 * Math.PI * i / (fftLength - 1))));
     }
@@ -58,13 +57,11 @@ public class FftProvider : ISampleProvider
         return read;
     }
 
-    // Returns 8 smoothed frequency bands (bass → treble)
     public float[] GetBands(int bandCount = 8)
     {
         var bands = new float[bandCount];
         lock (_lock)
         {
-            // Focus on lower half of spectrum (more musically relevant)
             int usable = FftData.Length / 2;
             int perBand = usable / bandCount;
             for (int b = 0; b < bandCount; b++)
@@ -72,7 +69,6 @@ public class FftProvider : ISampleProvider
                 float sum = 0;
                 for (int i = 0; i < perBand; i++)
                     sum += FftData[b * perBand + i];
-                // Normalize and boost
                 bands[b] = Math.Min(1f, sum / perBand * 40f);
             }
         }

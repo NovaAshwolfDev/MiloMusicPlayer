@@ -1,14 +1,15 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Avalonia.Media.Imaging;
 using Avalonia.Interactivity;
 using Avalonia.Platform;
+using Avalonia.Controls.Primitives;
 using Avalonia.Media;
 using Milo.Helpers;
 using MiloMusicPlayer.Services;
 using MiloMusicPlayer.Models;
+using MiloMusicPlayer.Scripting;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -30,17 +31,50 @@ public partial class MainWindow : Window
     private bool _libraryReady = false;
     private bool _libraryInitialized = false;
     private bool _folderView = false;
+    private bool _shuffle = false;
+    private bool _repeat  = false;
     private List<LibraryFolder> _allFolders = new();
     private List<LibrarySong> _allLibrarySongs = new();
 
     private readonly AlbumArtServer _artServer = new();
     private readonly Services.DiscordRPC _rpc = new("980443378661621843");
+    private ModLoader _modLoader;
+
     public MainWindow()
     {
         string musicFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic);
         InitializeComponent();
         Icon = new WindowIcon("Assets/icon.ico");
         songs = LibraryScanner.ScanFolder(musicFolder);
+
+        var modsPath = Path.Combine(AppContext.BaseDirectory, "Mods");
+        Directory.CreateDirectory(modsPath);
+
+        _modLoader = new ModLoader(modsPath);
+        _modLoader.Log            = msg => Console.WriteLine(msg);
+        _modLoader.GetVolume      = () => player.Volume;
+        _modLoader.SetVolume      = v  => { player.Volume = v; VolumeSlider.Value = v; };
+        _modLoader.RequestPlay    = () => ResumePlayback();
+        _modLoader.RequestPause   = () => PausePlayback();
+        _modLoader.RequestNext    = () => NextSong();
+        _modLoader.RequestPrev    = () => PrevSong();
+        _modLoader.GetPlayerState = () => new PlayerState
+        {
+            IsPlaying = playing,
+            Volume    = player.Volume,
+            Position  = (float)player.Position.TotalSeconds
+        };
+        _modLoader.GetQueue = () => songs.Select(s => new TrackInfo
+        {
+            Title    = s.Title,
+            Artist   = s.Artist,
+            Album    = s.Genre,
+            Genre    = s.Genre,
+            Duration = (float)player.Duration.TotalSeconds,
+            Path     = s.FilePath
+        }).ToList();
+
+        _modLoader.LoadAll();
 
         if (songs.Count == 0)
             return;
@@ -66,6 +100,8 @@ public partial class MainWindow : Window
             else
                 LibraryButton.Margin = new Thickness(0, LibraryButton.Margin.Top, LibraryButton.Margin.Right, LibraryButton.Margin.Bottom);
         };
+
+        Closing += (_, _) => _modLoader.UnloadAll();
 
         ProgressSlider.PropertyChanged += ProgressSliderChanged;
         timer.Interval = TimeSpan.FromMilliseconds(34 / 2.0);
@@ -124,7 +160,7 @@ public partial class MainWindow : Window
 
         await Task.Delay(200);
 
-        Title = "Milo's Music Player" + " - " + song.Title;
+        Title = "Milo's Music Player - " + song.Title;
         SongTitleText.Text = song.Title;
         ArtistText.Text = song.Artist;
         GenreText.Text = song.Genre;
@@ -159,6 +195,9 @@ public partial class MainWindow : Window
         await _artServer.SetArt(artBytes);
         Console.WriteLine("Art URL: " + _artServer.Url);
         _rpc.UpdatePresence(songs[index], TimeSpan.Zero, player.Duration, _artServer.Url);
+
+        _modLoader.FireOnTrackChange(SongToTrackInfo(song));
+        _modLoader.FireOnPlay(SongToTrackInfo(song));
     }
 
     private void UpdatePlaybackTime(object? sender, EventArgs e)
@@ -196,54 +235,88 @@ public partial class MainWindow : Window
     {
         if (songs.Count == 0) return;
 
-        curSongIndex++;
+        if (_repeat)
+        {
+            PlaySong(curSongIndex);
+            return;
+        }
 
-        if (curSongIndex >= songs.Count)
-            curSongIndex = 0;
+        if (_shuffle)
+        {
+            var rng = new Random();
+            int next;
+            do { next = rng.Next(songs.Count); }
+            while (songs.Count > 1 && next == curSongIndex);
+            curSongIndex = next;
+        }
+        else
+        {
+            curSongIndex++;
+            if (curSongIndex >= songs.Count)
+                curSongIndex = 0;
+        }
 
         PlaySong(curSongIndex);
     }
 
-    private void SkipForward_Click(object? sender, RoutedEventArgs e)
-    {
-        if (songs.Count == 0) return;
-
-        curSongIndex++;
-
-        if (curSongIndex >= songs.Count)
-            curSongIndex = 0;
-
-        PlaySong(curSongIndex);
-    }
-
-    private void SkipBack_Click(object? sender, RoutedEventArgs e)
+    private void PrevSong()
     {
         if (songs.Count == 0) return;
 
         curSongIndex--;
-
         if (curSongIndex < 0)
             curSongIndex = songs.Count - 1;
 
         PlaySong(curSongIndex);
     }
 
+    private void ResumePlayback()
+    {
+        player.Resume();
+        PlayPauseIcon.Data = Geometry.Parse("M6,5H10V19H6M14,5H18V19H14");
+        playing = true;
+        _rpc.UpdatePresence(songs[curSongIndex], player.Position, player.Duration, _artServer.Url);
+    }
+
+    private void PausePlayback()
+    {
+        player.Pause();
+        PlayPauseIcon.Data = Geometry.Parse("M8,5V19L19,12L8,5Z");
+        playing = false;
+        _rpc.ClearPresence();
+        _modLoader.FireOnPause();
+    }
+
+    private void ShuffleButton_Click(object? sender, RoutedEventArgs e)
+    {
+        _shuffle = !_shuffle;
+        ShuffleButton.Classes.Set("mediaActive", _shuffle);
+        ShuffleButton.Classes.Set("media", !_shuffle);
+    }
+
+    private void RepeatButton_Click(object? sender, RoutedEventArgs e)
+    {
+        _repeat = !_repeat;
+        RepeatButton.Classes.Set("mediaActive", _repeat);
+        RepeatButton.Classes.Set("media", !_repeat);
+    }
+
+    private void VolumeSlider_Changed(object? sender, RangeBaseValueChangedEventArgs e)
+    {
+        player.Volume = (float)e.NewValue;
+        _modLoader.FireOnVolumeChange((float)e.NewValue);
+    }
+
+    private void SkipForward_Click(object? sender, RoutedEventArgs e) => NextSong();
+
+    private void SkipBack_Click(object? sender, RoutedEventArgs e) => PrevSong();
+
     private void PlayPause_Click(object? sender, RoutedEventArgs e)
     {
         if (playing)
-        {
-            player.Pause();
-            PlayPauseIcon.Data = Geometry.Parse("M8,5V19L19,12L8,5Z");
-            playing = false;
-            _rpc.ClearPresence();
-        }
+            PausePlayback();
         else
-        {
-            player.Resume();
-            PlayPauseIcon.Data = Geometry.Parse("M6,5H10V19H6M14,5H18V19H14");
-            playing = true;
-            _rpc.UpdatePresence(songs[curSongIndex], player.Position, player.Duration, _artServer.Url);
-        }
+            ResumePlayback();
     }
 
     private async void LibraryButton_Click(object? sender, RoutedEventArgs e)
@@ -289,15 +362,14 @@ public partial class MainWindow : Window
 
         FolderList.SelectedItem = null;
     }
+
     private async Task FadeToLibrary()
     {
         _libraryOpen = true;
         _libraryReady = false;
         LibraryView.IsVisible = true;
 
-        double targetRight = 16;
         double startLeft = LibraryButton.Margin.Left;
-        double startBottom = LibraryButton.Margin.Bottom;
         double targetLeft = Bounds.Width - 90;
 
         await AnimationHelper.AnimateMany(200,
@@ -327,6 +399,7 @@ public partial class MainWindow : Window
 
         LibraryView.IsVisible = false;
     }
+
     private string FormatTime(TimeSpan time)
     {
         if (time.Hours > 0)
@@ -341,7 +414,7 @@ public partial class MainWindow : Window
     private string FormattedTime(TimeSpan position, TimeSpan duration)
     {
         return $"{FormatTime(position)} / {FormatTime(duration)}";
-    }    
+    }
 
     private void SearchBox_TextChanged(object? sender, TextChangedEventArgs e)
     {
@@ -374,4 +447,14 @@ public partial class MainWindow : Window
         shadersOn = !shadersOn;
         ShaderBackground.IsVisible = shadersOn;
     }
+
+    private TrackInfo SongToTrackInfo(Song song) => new TrackInfo
+    {
+        Title    = song.Title,
+        Artist   = song.Artist,
+        Album    = song.Genre,
+        Genre    = song.Genre,
+        Duration = (float)player.Duration.TotalSeconds,
+        Path     = song.FilePath
+    };
 }

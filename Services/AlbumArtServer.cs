@@ -8,7 +8,7 @@ namespace MiloMusicPlayer.Services;
 public class AlbumArtServer : IDisposable
 {
     private readonly HttpClient _http = new();
-    private string _currentUrl = "cover"; // fallback to portal key
+    private string _currentUrl = "cover"; 
 
     public string Url => _currentUrl;
 
@@ -20,7 +20,7 @@ public class AlbumArtServer : IDisposable
             return;
         }
 
-        var copy = (byte[])art.Clone(); // ensure we own the buffer
+        var copy = (byte[])art.Clone();
         var uploaded = await UploadAsync(copy);
         _currentUrl = uploaded ?? "cover";
     }

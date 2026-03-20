@@ -4,8 +4,8 @@
         xmlns:models="using:MiloMusicPlayer.Models"
         x:Class="MiloMusicPlayer.MainWindow"
         Title="MiloMusicPlayer"
-        Width="900"
-        Height="600">
+        Width="600"
+        Height="700">
 
     <Window.Styles>
         <Style Selector="Window">
@@ -112,7 +112,6 @@
             IsVisible="False"
         />
 
-        <!-- Main Player -->
         <Border x:Name="PlayerView"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
@@ -175,6 +174,17 @@
                             Spacing="16"
                             Margin="0,18,0,0">
 
+                    <Button x:Name="ShuffleButton"
+                            Classes="media"
+                            Width="38"
+                            Height="38"
+                            CornerRadius="19"
+                            Click="ShuffleButton_Click">
+                        <PathIcon Width="16" Height="16"
+                                  Foreground="White"
+                                  Data="M14.83,13.41L13.42,14.82L16.55,17.95L14.5,20H20V14.5L17.96,16.54L14.83,13.41M14.5,4L16.54,6.04L4,18.59L5.41,20L17.96,7.46L20,9.5V4M10.59,9.17L5.41,4L4,5.41L9.17,10.58L10.59,9.17Z"/>
+                    </Button>
+
                     <Button x:Name="BackButton"
                             Classes="media"
                             Width="48"
@@ -209,11 +219,40 @@
                                   Foreground="White"
                                   Data="M9,6V18L17.5,12M8,6H6V18H8V6Z"/>
                     </Button>
+
+                    <Button x:Name="RepeatButton"
+                            Classes="media"
+                            Width="38"
+                            Height="38"
+                            CornerRadius="19"
+                            Click="RepeatButton_Click">
+                        <PathIcon Width="16" Height="16"
+                                  Foreground="White"
+                                  Data="M17,17H7V14L3,18L7,22V19H19V13H17M7,7H17V10L21,6L17,2V5H5V11H7V7Z"/>
+                    </Button>
                 </StackPanel>
+
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            Spacing="8"
+                            Margin="0,8,0,0">
+                    <PathIcon Width="14" Height="14"
+                              Foreground="#7F96AA"
+                              Data="M5,9V15H9L14,20V4L9,9H5Z"/>
+                    <Slider x:Name="VolumeSlider"
+                            Minimum="0"
+                            Maximum="1"
+                            Value="1"
+                            Width="200"
+                            ValueChanged="VolumeSlider_Changed"/>
+                    <PathIcon Width="14" Height="14"
+                              Foreground="#7F96AA"
+                              Data="M3,9V15H7L12,20V4L7,9H3M16.5,12A4.5,4.5 0 0,0 12,7.5V16.5A4.5,4.5 0 0,0 16.5,12M19,12A7,7 0 0,1 12,19V17A5,5 0 0,0 17,12A5,5 0 0,0 12,7V5A7,7 0 0,1 19,12Z"/>
+                </StackPanel>
+
             </StackPanel>
         </Border>
 
-        <!-- Library View -->
         <Grid x:Name="LibraryView"
               IsVisible="False"
               Opacity="0"
@@ -225,26 +264,25 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Library title — pushed down past the floating buttons -->
             <TextBlock Grid.Row="0"
                        Text="Library"
                        Classes="title"
                        FontSize="28"
                        Margin="0,72,0,0"/>
 
-            <!-- Search bar + view toggle buttons -->
             <Grid Grid.Row="1" Margin="0,8,0,12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
+
                 <TextBox Grid.Column="0"
-                        x:Name="SearchBox"
-                        Watermark="Search songs, artists, albums..."
-                        Height="40"
-                        Margin="0,0,8,0"
-                        VerticalContentAlignment="Center"
-                        TextChanged="SearchBox_TextChanged"/>
+                         x:Name="SearchBox"
+                         Watermark="Search songs, artists, albums..."
+                         Height="40"
+                         Margin="0,0,8,0"
+                         TextChanged="SearchBox_TextChanged"/>
+
                 <StackPanel Grid.Column="1"
                             Orientation="Horizontal"
                             Spacing="6">
@@ -273,7 +311,6 @@
                 </StackPanel>
             </Grid>
 
-            <!-- List view -->
             <ListBox Grid.Row="2"
                      x:Name="LibraryList"
                      Background="Transparent"
@@ -310,7 +347,6 @@
                 </ListBox.ItemTemplate>
             </ListBox>
 
-            <!-- Folder view -->
             <TreeView Grid.Row="2"
                       x:Name="FolderList"
                       Background="Transparent"
@@ -360,7 +396,6 @@
             </TreeView>
         </Grid>
 
-        <!-- Floating buttons -->
         <StackPanel HorizontalAlignment="Left"
                     VerticalAlignment="Top"
                     Margin="16"

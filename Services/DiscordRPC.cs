@@ -18,8 +18,8 @@ public class DiscordRPC
     public void UpdatePresence(Song song, TimeSpan position, TimeSpan duration, string artUrl)
     {
         var now = DateTimeOffset.UtcNow;
-        var start = now - position;  // when the song started
-        var end = now + (duration - position);  // when it will end
+        var start = now - position;
+        var end = now + (duration - position);
 
         _client.SetPresence(new RichPresence
         {

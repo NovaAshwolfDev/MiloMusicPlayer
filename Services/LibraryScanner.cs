@@ -16,7 +16,7 @@ public static class LibraryScanner
         {
             var ext = Path.GetExtension(file).ToLower();
 
-            if (ext == ".mp3" || ext == ".wav")
+            if (ext == ".mp3" || ext == ".wav" || ext == ".flac" || ext == ".ogg" || ext == ".m4a")
             {
                 try
                 {
@@ -25,7 +25,6 @@ public static class LibraryScanner
                 }
                 catch
                 {
-                    // skip broken files
                 }
             }
         }

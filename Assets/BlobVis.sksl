@@ -9,7 +9,6 @@ uniform float iBand5;
 uniform float iBand6;
 uniform float iBand7;
 
-// ---- helpers ----
 float hash(float2 p) {
     p = fract(p * float2(127.1, 311.7));
     p += dot(p, p + 19.19);
@@ -44,13 +43,11 @@ half4 main(float2 fragCoord) {
     float t = iTime;
     float scene = 10000.0;
 
-    // ---- band groups ----
     float bass   = iBand0 * 0.7 + iBand1 * 0.3;
     float lm     = iBand2 * 0.6 + iBand3 * 0.4;
     float mid    = iBand4 * 0.5 + iBand5 * 0.5;
     float treble = iBand6 * 0.5 + iBand7 * 0.5;
 
-    // ---- blobs ----
     float2 b0 = float2(sin(t * 0.3) * 0.05, cos(t * 0.25) * 0.05);
     float r0 = 0.28 + bass * 0.22;
     scene = smin(scene, sdCircle(p, b0, r0), 0.18);
@@ -83,7 +80,6 @@ half4 main(float2 fragCoord) {
     float r7 = 0.06 + treble * 0.07;
     scene = smin(scene, sdCircle(p, b7, r7), 0.08);
 
-    // ---- colour ----
     float hueShift = t * 0.08 + bass * 0.3 + treble * 0.15;
 
     float blobMask  = 1.0 - smoothstep(-0.01, 0.04, scene);
