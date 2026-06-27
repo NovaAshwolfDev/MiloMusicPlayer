@@ -88,13 +88,18 @@
                         Orientation="Horizontal"
                         HorizontalAlignment="Center"
                         Margin="0,4,0,12">
-                <Button Content="Friends" Classes="mediaActive"
+                <Button x:Name="FriendsButton"
+                        Content="Friends"
                         Command="{Binding ShowFriendsCommand}"
                         IsVisible="{Binding !IsInSession}"/>
-                <Button Content="Activity" Classes="media"
+
+                <Button x:Name="ActivityButton"
+                        Content="Activity"
                         Command="{Binding ShowFeedCommand}"
                         IsVisible="{Binding !IsInSession}"/>
-                <Button Content="Session" Classes="media"
+
+                <Button x:Name="SessionButton"
+                        Content="Session"
                         Command="{Binding ShowSessionCommand}"
                         IsVisible="{Binding IsInSession}"/>
             </StackPanel>

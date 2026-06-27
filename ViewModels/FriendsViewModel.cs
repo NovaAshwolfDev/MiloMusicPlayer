@@ -64,7 +64,6 @@ public class FriendsViewModel : INotifyPropertyChanged
     public FriendsViewModel()
     {
         string token = SettingsManager.Current.AuthToken ?? "";
-        Console.WriteLine(token);
         _api = new FriendsService(token);
         IsLoggedIn = !string.IsNullOrWhiteSpace(token);
 
