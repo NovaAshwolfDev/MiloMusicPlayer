@@ -1,0 +1,262 @@
+<UserControl x:Class="MiloMusicPlayer.Views.FriendsPanel"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:MiloMusicPlayer.ViewModels"
+             xmlns:models="clr-namespace:MiloMusicPlayer.Models"
+             xmlns:sys="clr-namespace:System;assembly=netstandard"
+             x:DataType="vm:FriendsViewModel"
+             Width="320" Background="#0D1320"
+             BorderBrush="#20314A" BorderThickness="1,0,0,0">
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.title">
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#F5FBFF"/>
+        </Style>
+        <Style Selector="TextBlock.subtitle">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#C7D9E8"/>
+        </Style>
+        <Style Selector="TextBlock.meta">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#7F96AAFF"/>
+        </Style>
+        <Style Selector="Button.media">
+            <Setter Property="Background" Value="#1A2233FF"/>
+            <Setter Property="Foreground" Value="#eaf7ff"/>
+            <Setter Property="BorderBrush" Value="#2B3D5DFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+        </Style>
+        <Style Selector="Button.media:pointerover">
+            <Setter Property="Background" Value="#22304AFF"/>
+            <Setter Property="BorderBrush" Value="#49B9FFFF"/>
+        </Style>
+        <Style Selector="Button.media:pressed">
+            <Setter Property="Background" Value="#111827"/>
+        </Style>
+        <Style Selector="Button.mediaActive">
+            <Setter Property="Background" Value="#11243D"/>
+            <Setter Property="Foreground" Value="#49B9FF"/>
+            <Setter Property="BorderBrush" Value="#49B9FF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style Selector="Button.primaryMedia">
+            <Setter Property="Background" Value="#11243D"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#49B9FF"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="CornerRadius" Value="8"/>
+        </Style>
+        <Style Selector="Button.primaryMedia:pointerover">
+            <Setter Property="Background" Value="#163154"/>
+            <Setter Property="BorderBrush" Value="#7A5CFF"/>
+        </Style>
+        <Style Selector="Button.primaryMedia:pressed">
+            <Setter Property="Background" Value="#0D1D31"/>
+        </Style>
+        <Style Selector="ListBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="8,6"/>
+        </Style>
+        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#1A2233"/>
+        </Style>
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#22304A"/>
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="#1A2233"/>
+            <Setter Property="Foreground" Value="#F5FBFF"/>
+            <Setter Property="BorderBrush" Value="#2B3D5D"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="CaretBrush" Value="#F5FBFF"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid>
+        <DockPanel LastChildFill="True" IsVisible="{Binding IsLoggedIn}">
+
+            <StackPanel DockPanel.Dock="Top" Margin="16,20,16,8">
+                <TextBlock Text="Friends" Classes="title"/>
+                <TextBlock Text="Connect and listen together" Classes="meta" Margin="0,2,0,0"/>
+            </StackPanel>
+
+            <StackPanel DockPanel.Dock="Top"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Margin="0,4,0,12">
+                <Button Content="Friends" Classes="mediaActive"
+                        Command="{Binding ShowFriendsCommand}"
+                        IsVisible="{Binding !IsInSession}"/>
+                <Button Content="Activity" Classes="media"
+                        Command="{Binding ShowFeedCommand}"
+                        IsVisible="{Binding !IsInSession}"/>
+                <Button Content="Session" Classes="media"
+                        Command="{Binding ShowSessionCommand}"
+                        IsVisible="{Binding IsInSession}"/>
+            </StackPanel>
+
+            <Grid Margin="16,0,16,16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid RowDefinitions="Auto,Auto,*" IsVisible="{Binding IsFriendsVisible}">
+
+                    <TextBox Grid.Row="0"
+                             Text="{Binding SearchQuery}"
+                             Watermark="Search users..."
+                             Height="36"
+                             HorizontalContentAlignment="Center"
+                             VerticalContentAlignment="Center"
+                             Margin="0,0,0,8"/>
+
+                    <ListBox Grid.Row="1"
+                             ItemsSource="{Binding SearchResults}"
+                             Background="Transparent"
+                             MaxHeight="150"
+                             IsVisible="{Binding SearchResults.Count}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:UserSearchResult">
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,4">
+                                    <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
+                                               Classes="subtitle" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1" Content="Add"
+                                            Classes="primaryMedia"
+                                            Width="50" Height="30"
+                                            Command="{Binding $parent[UserControl].((vm:FriendsViewModel)DataContext).AddFriendCommand}"
+                                            CommandParameter="{Binding Id}"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <ListBox Grid.Row="2"
+                             ItemsSource="{Binding Friends}"
+                             Background="Transparent">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:Friend">
+                                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,6">
+                                    <Ellipse Grid.Column="0" Width="10" Height="10"
+                                             Fill="Green"
+                                             IsVisible="{Binding IsOnline}"
+                                             Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding DisplayName}" Classes="subtitle"
+                                                   FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding CurrentTrackTitle}" Classes="meta"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   IsVisible="{Binding !!CurrentTrackTitle}"/>
+                                    </StackPanel>
+                                    <!-- I HATE CENTERING SHIT IAYGYUAUAUUUUUUUUGGHHHHHHHHHHHHH -->
+                                    <Button Grid.Column="2"
+                                            Content="Join"
+                                            Classes="primaryMedia"
+                                            Width="50" Height="30"
+                                            HorizontalContentAlignment="Center"
+                                            VerticalContentAlignment="Center" 
+                                            IsVisible="{Binding !!SessionId}"
+                                            Command="{Binding $parent[UserControl].((vm:FriendsViewModel)DataContext).JoinSessionCommand}"
+                                            CommandParameter="{Binding SessionId}"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+
+                <ListBox ItemsSource="{Binding Activities}"
+                         IsVisible="{Binding IsFeedVisible}"
+                         Background="Transparent">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:ActivityEntry">
+                            <StackPanel Margin="0,6">
+                                <TextBlock Text="{Binding DisplayName}" Classes="subtitle" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding Type}" Classes="meta"/>
+                                <TextBlock Text="{Binding TrackTitle}" Classes="meta" FontStyle="Italic"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <Grid IsVisible="{Binding IsSessionVisible}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                        <TextBlock Text="In the session" Classes="meta" Margin="0,0,0,4"/>
+                        <ItemsControl ItemsSource="{Binding SessionParticipants}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="sys:String">
+                                    <TextBlock Text="{Binding}" Classes="subtitle" Margin="0,2"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <Button Grid.Row="1"
+                            Content="Leave Session"
+                            Command="{Binding LeaveSessionCommand}"
+                            Classes="primaryMedia"
+                            Width="120" Height="30"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            Margin="0,0,0,8"/>
+
+                    <ListBox Grid.Row="2" ItemsSource="{Binding ChatMessages}"
+                             Background="Transparent">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:ChatMessage">
+                                <StackPanel Margin="0,4">
+                                    <TextBlock Text="{Binding DisplayName}" Classes="subtitle"
+                                               FontWeight="SemiBold" Foreground="#FF8888"/>
+                                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap"
+                                               Classes="subtitle" Foreground="White"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                        <TextBox Text="{Binding NewChatMessage}" Watermark="Type a message..."
+                                 Width="200" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                        <Button Content="Send" Command="{Binding SendChatCommand}"
+                                VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                                Classes="primaryMedia" Width="60" Height="40"/>
+                    </StackPanel>
+                </Grid>
+
+                <StackPanel IsVisible="{Binding !IsInSession}"
+                            VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                            Spacing="8" Margin="0,0,0,8">
+                    <TextBlock Text="Start a shared session" Classes="subtitle" TextAlignment="Center"/>
+                    <TextBlock Text="Listen together in real time (Not implemented yet)" Classes="meta" TextAlignment="Center"/>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                        <Button Content="Create Session"
+                                Command="{Binding CreateSessionCommand}"
+                                Classes="primaryMedia" Width="160" Height="40"
+                                HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                        <Button Content="Refresh Friends"
+                                Command="{Binding RefreshCommand}"
+                                Classes="primaryMedia" Width="120" Height="40"
+                                HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </DockPanel>
+
+        <StackPanel IsVisible="{Binding IsLoggedIn, Converter={x:Static BoolConverters.Not}}"
+                    VerticalAlignment="Center" HorizontalAlignment="Center"
+                    Spacing="8">
+            <TextBlock Text="Not signed in" Classes="subtitle" TextAlignment="Center"/>
+            <TextBlock Text="Sign in to use the friends system" Classes="meta" TextAlignment="Center"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

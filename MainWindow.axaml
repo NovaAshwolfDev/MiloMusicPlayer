@@ -330,6 +330,13 @@
                 IsVisible="False"
                 Opacity="0"
                 Margin="24"/>
+            <views:FriendsPanel 
+                x:Name="FriendsPanel"
+                IsVisible="False"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Stretch"
+                Width="350"
+                ZIndex="10"/>
             <Grid x:Name="LibraryView"
                   IsVisible="False"
                   Opacity="0"
@@ -495,6 +502,14 @@
                     <PathIcon Width="18" Height="18"
                               Foreground="White"
                               Data="M12 2A10 10 0 0 0 12 22A10 10 0 0 0 12 2M12 4A8 8 0 0 1 12 20A8 8 0 0 1 12 4M11 6V13H13V6M9.27 7.76L7.86 9.17A6 6 0 0 0 6 13A6 6 0 0 0 12 19A6 6 0 0 0 18 13A6 6 0 0 0 16.14 9.17L14.73 7.76A4 4 0 0 1 16 13A4 4 0 0 1 12 17A4 4 0 0 1 8 13A4 4 0 0 1 9.27 7.76Z"/>
+                </Button>
+                <Button x:Name="FriendsButton"
+                        Classes="media"
+                        Width="46" Height="46" CornerRadius="23"
+                        Click="FriendsButton_Click">
+                    <PathIcon Width="18" Height="18"
+                            Foreground="White"
+                            Data="M16,17V19H2V17S2,13 9,13S16,17 16,17M12.5,7.5A3.5,3.5 0 1,0 9,11A3.5,3.5 0 0,0 12.5,7.5M15.94,13A5.32,5.32 0 0,1 18,17V19H22V17S22,13.37 15.94,13M15,4A3.39,3.39 0 0,0 13.07,4.59A5,5 0 0,1 13.07,10.41A3.39,3.39 0 0,0 15,11A3.5,3.5 0 0,0 15,4Z" />
                 </Button>
                 <Button x:Name="SettingsButton"
                         Classes="media"

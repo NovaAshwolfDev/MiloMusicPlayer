@@ -26,4 +26,8 @@ public class AppSettings
         ["Repeat"]       = "R",
         ["Fullscreen"]   = "F11",
     };
+
+    public string? AuthToken { get; set; } = null;
+    public string? UserId { get; set; } = null;
+    public string? DisplayName { get; set; } = null;
 }

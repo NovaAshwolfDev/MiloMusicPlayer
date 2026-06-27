@@ -1,0 +1,115 @@
+<Window x:Class="MiloMusicPlayer.Views.LoginWindow"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Sign In"
+        Width="380" Height="340"
+        WindowStartupLocation="CenterOwner"
+        Background="#070B14"
+        SystemDecorations="None"
+        CanResize="False">
+
+    <Window.Styles>
+        <Style Selector="TextBlock.title">
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#F5FBFF"/>
+        </Style>
+        <Style Selector="TextBlock.subtitle">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#C7D9E8"/>
+        </Style>
+        <Style Selector="TextBlock.meta">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#7F96AAFF"/>
+        </Style>
+        <Style Selector="Button.media">
+            <Setter Property="Background" Value="#1A2233FF"/>
+            <Setter Property="Foreground" Value="#eaf7ff"/>
+            <Setter Property="BorderBrush" Value="#2B3D5DFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+        </Style>
+        <Style Selector="Button.media:pointerover">
+            <Setter Property="Background" Value="#22304AFF"/>
+            <Setter Property="BorderBrush" Value="#49B9FFFF"/>
+        </Style>
+        <Style Selector="Button.media:pressed">
+            <Setter Property="Background" Value="#111827"/>
+        </Style>
+        <Style Selector="Button.primaryMedia">
+            <Setter Property="Background" Value="#11243D"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#49B9FF"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="CornerRadius" Value="8"/>
+        </Style>
+        <Style Selector="Button.primaryMedia:pointerover">
+            <Setter Property="Background" Value="#163154"/>
+            <Setter Property="BorderBrush" Value="#7A5CFF"/>
+        </Style>
+        <Style Selector="Button.primaryMedia:pressed">
+            <Setter Property="Background" Value="#0D1D31"/>
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Width" Value="280"/>
+            <Setter Property="Background" Value="#1A2233"/>
+            <Setter Property="Foreground" Value="#F5FBFF"/>
+            <Setter Property="BorderBrush" Value="#2B3D5D"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="CaretBrush" Value="#F5FBFF"/>
+        </Style>
+
+        <Style Selector="Button">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="32,*">
+        <Grid Grid.Row="0" Background="#070B14" PointerPressed="TitleBar_PointerPressed">
+            <StackPanel Orientation="Horizontal"
+                        VerticalAlignment="Center" Margin="12,0,0,0">
+                <Image Source="/Assets/icon.ico" Width="16" Height="16"/>
+                <TextBlock Text="Sign In" Foreground="#7F96AA"
+                           FontSize="12" VerticalAlignment="Center" Margin="6,0,0,0"/>
+            </StackPanel>
+            <Button HorizontalAlignment="Right" Click="Close_Click"
+                    Classes="titlebar-btn" Margin="0,0,4,0">
+                <PathIcon Width="10" Height="10" Foreground="#7F96AA"
+                          Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+            </Button>
+        </Grid>
+
+        <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="30,0" Spacing="16">
+            <TextBlock Text="Welcome back" Classes="title" HorizontalAlignment="Center"/>
+            <TextBlock Text="Sign in to connect with friends" Classes="subtitle" HorizontalAlignment="Center"/>
+
+            <TextBox x:Name="EmailTextBox"
+                    Width="280"
+                    Height="40"
+                    HorizontalAlignment="Center"
+                    Watermark="Email"/>
+
+            <TextBox x:Name="PasswordTextBox"
+                    Width="280"
+                    Height="40"
+                    HorizontalAlignment="Center"
+                    Watermark="Password"/>
+
+            <TextBox x:Name="DisplayNameTextBox"
+                    Width="280"
+                    Height="40"
+                    HorizontalAlignment="Center"
+                    Watermark="Display Name (register only)"/>
+                    
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
+                <Button Content="Log In" Classes="primaryMedia" Click="Login_Click" Width="100" Height="40" VerticalAlignment="Center"/>
+                <Button Content="Register" Classes="media" Click="Register_Click" Width="100" Height="40" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <TextBlock x:Name="ErrorText" Classes="meta" Foreground="#FF6B6B"
+                       HorizontalAlignment="Center" TextAlignment="Center" />
+        </StackPanel>
+    </Grid>
+</Window>

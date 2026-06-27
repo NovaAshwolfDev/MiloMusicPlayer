@@ -31,3 +31,9 @@ build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
 [I:/Drive/Coding/CSharp/MiloMusicPlayer/SettingsView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[I:/Drive/Coding/CSharp/MiloMusicPlayer/Views/FriendsPanel.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[I:/Drive/Coding/CSharp/MiloMusicPlayer/Views/LoginWindow.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml

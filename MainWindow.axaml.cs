@@ -33,6 +33,7 @@ public partial class MainWindow : Window
     private bool _settingsOpen = false;
     private bool _libraryReady = false;
     private bool _libraryInitialized = false;
+    private bool _friendsOpen = false;
     private double _settingsButtonOriginalY;
     private double _settingsButtonTranslateY = 0;
     private TranslateTransform _settingsButtonTransform;
@@ -50,6 +51,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         SettingsManager.Load();
+        _ = HydrateUserInfo();
         InitializeComponent();
         Icon = new WindowIcon("Assets/icon.ico");
 
@@ -141,7 +143,12 @@ public partial class MainWindow : Window
         timer.Tick += UpdatePlaybackTime;
         timer.Start();
     }
-
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+        if (FriendsPanel.DataContext is ViewModels.FriendsViewModel friendsVm)
+            _ = friendsVm.Refresh();
+    }
     private List<Song> ScanAllFolders()
     {
         var all = new List<Song>();
@@ -190,11 +197,15 @@ public partial class MainWindow : Window
             (LibraryView,   "Opacity", LibraryView.Opacity, 0.0),
             (ShaderButton,  "Opacity", 1.0, 0.0),
             (LibraryButton, "Opacity", 1.0, 0.0),
-            (SettingsView,  "Opacity", 0.0, 1.0)
+            (FriendsButton, "Opacity", 1.0, 0.0),
+            (SettingsView,  "Opacity", 0.0, 1.0),
+            (FriendsPanel,  "Opacity", FriendsPanel.Opacity, 0.0)
         );
 
         PlayerView.IsVisible  = false;
         LibraryView.IsVisible = false;
+        FriendsPanel.IsVisible = false;
+        _friendsOpen = false;
     }
 
     private void HandleGlobalKeyDown(object? sender, KeyEventArgs e)
@@ -389,6 +400,9 @@ public partial class MainWindow : Window
 
         _modLoader.FireOnTrackChange(SongToTrackInfo(song));
         _modLoader.FireOnPlay(SongToTrackInfo(song));
+
+        if (FriendsPanel.DataContext is ViewModels.FriendsViewModel friendsVm)
+            _ = friendsVm.PostActivity("Playing", song.Title, song.Artist);
     }
 
     private void UpdatePlaybackTime(object? sender, EventArgs e)
@@ -556,12 +570,60 @@ public partial class MainWindow : Window
 
         FolderList.SelectedItem = null;
     }
+    private async void FriendsButton_Click(object? sender, RoutedEventArgs e)
+    {
+        // Check if user is logged in; if not, show login window
+        if (string.IsNullOrEmpty(SettingsManager.Current.AuthToken))
+        {
+            var login = new Views.LoginWindow();
+            await login.ShowDialog(this);
+            if (string.IsNullOrEmpty(login.Token))
+                return; // cancelled
 
+            SettingsManager.Current.AuthToken = login.Token;
+            if (!string.IsNullOrWhiteSpace(login.UserId))
+                SettingsManager.Current.UserId = login.UserId;
+
+            if (!string.IsNullOrWhiteSpace(login.DisplayName))
+                SettingsManager.Current.DisplayName = login.DisplayName;
+
+            SettingsManager.Save();
+
+            // Reinitialize the FriendsViewModel with the new token
+            FriendsPanel.DataContext = new ViewModels.FriendsViewModel();
+        }
+
+        if (_friendsOpen)
+            await FadeFriendsOut();
+        else
+            await FadeFriendsIn();
+    }
+    private async Task FadeFriendsIn()
+    {
+        _friendsOpen = true;
+        FriendsPanel.IsVisible = true;
+        FriendsPanel.Margin = new Thickness(Bounds.Width, 0, 0, 0);
+        await AnimationHelper.AnimateMany(200,
+            (FriendsPanel, "X", Bounds.Width, 0),
+            (FriendsPanel, "Opacity", 0.0, 1.0)
+        );
+    }
+
+    private async Task FadeFriendsOut()
+    {
+        await AnimationHelper.AnimateMany(200,
+            (FriendsPanel, "X", 0, Bounds.Width),
+            (FriendsPanel, "Opacity", 1.0, 0.0)
+        );
+        FriendsPanel.IsVisible = false;
+        _friendsOpen = false;
+    }
     private async Task FadeToLibrary()
     {
         _libraryOpen = true;
         _settingsOpen = false;
         _libraryReady = false;
+        _friendsOpen = false;
         LibraryView.IsVisible = true;
 
         double startLeft = LibraryButton.Margin.Left;
@@ -572,12 +634,15 @@ public partial class MainWindow : Window
             (LibraryView, "Opacity", 0.0, 1.0),
             (ShaderButton, "Opacity", 1.0, 0.0),
             (SettingsButton, "Opacity", 1.0, 0.0),
+            (FriendsButton, "Opacity", 1.0, 0.0),
             (SettingsView, "Opacity", SettingsView.Opacity, 0.0),
+            (FriendsPanel, "Opacity", 1.0, 0.0),
             (LibraryButton, "X", startLeft, targetLeft)
         );
 
         PlayerView.IsVisible = false;
         SettingsView.IsVisible = false;
+        FriendsPanel.IsVisible = false;
         _libraryReady = true;
     }
 
@@ -598,23 +663,29 @@ public partial class MainWindow : Window
             await AnimationHelper.AnimateMany(200,
                 (LibraryView,   "Opacity", LibraryView.Opacity,  0.0),
                 (SettingsView,  "Opacity", SettingsView.Opacity, 0.0),
+                (FriendsPanel,  "Opacity", FriendsPanel.Opacity, 0.0),
                 (PlayerView,    "Opacity", 0.0, 1.0),
                 (LibraryButton, "Opacity", 0.0, 1.0),
                 (ShaderButton,  "Opacity", 0.0, 1.0),
+                (FriendsButton, "Opacity", 0.0, 1.0),
                 (SettingsButton, "Opacity", 0.0, 1.0)
             );
+            _friendsOpen = false; 
         }
         else
         {
             await AnimationHelper.AnimateMany(200,
                 (LibraryView,   "Opacity", LibraryView.Opacity,  0.0),
                 (SettingsView,  "Opacity", SettingsView.Opacity, 0.0),
+                (FriendsPanel,  "Opacity", FriendsPanel.Opacity, 0.0),
                 (PlayerView,    "Opacity", 0.0, 1.0),
                 (LibraryButton, "Opacity", 0.0, 1.0),
                 (ShaderButton,  "Opacity", 0.0, 1.0),
                 (SettingsButton, "Opacity", 0.0, 1.0),
+                (FriendsButton, "Opacity", 0.0, 1.0),
                 (LibraryButton, "X", startLeft, 0)
             );
+            _friendsOpen = false;
         }
 
         LibraryView.IsVisible  = false;
@@ -652,7 +723,19 @@ public partial class MainWindow : Window
         shadersOn = !shadersOn;
         ShaderBackground.IsVisible = shadersOn;
     }
-
+    private async Task HydrateUserInfo()
+    {
+        if (string.IsNullOrWhiteSpace(SettingsManager.Current.AuthToken)) return;
+        try
+        {
+            var auth = new AuthService();
+            var (userId, displayName) = await auth.GetMeAsync(SettingsManager.Current.AuthToken);
+            SettingsManager.Current.UserId = userId;
+            SettingsManager.Current.DisplayName = displayName;
+            SettingsManager.Save();
+        }
+        catch { }
+    }
     private string FormatTime(TimeSpan time)
     {
         if (time.Hours > 0)
