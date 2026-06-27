@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Platform;
 using Avalonia.Controls.Primitives;
 using Avalonia.Media;
+using Avalonia.Input;
 using Milo.Helpers;
 using MiloMusicPlayer.Services;
 using MiloMusicPlayer.Models;
@@ -75,12 +76,15 @@ public partial class MainWindow : Window
         }).ToList();
         _modLoader.PlayTrack = path =>
         {
-            var index = songs.FindIndex(s => s.FilePath == path);
-            if (index >= 0)
+            Dispatcher.UIThread.InvokeAsync(() =>
             {
-                curSongIndex = index;
-                Dispatcher.UIThread.Post(() => PlaySong(curSongIndex));
-            }
+                var index = songs.FindIndex(s => s.FilePath == path);
+                if (index >= 0)
+                {
+                    curSongIndex = index;
+                    PlaySong(curSongIndex);
+                }
+            });
         };
         _modLoader.LoadAll();
 
@@ -89,6 +93,7 @@ public partial class MainWindow : Window
 
         _ = InitLibrary();
         PlaySong(curSongIndex);
+        PausePlayback();
         ShaderBackground.FftBands = player.GetFftBands();
 
         KeyDown += (_, e) =>
@@ -117,6 +122,30 @@ public partial class MainWindow : Window
         timer.Start();
     }
 
+    // Title bar handlers
+    private void TitleBar_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            BeginMoveDrag(e);
+    }
+
+    private void MinimiseButton_Click(object? sender, RoutedEventArgs e)
+        => WindowState = WindowState.Minimized;
+
+    private void MaximiseButton_Click(object? sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState == WindowState.Maximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
+
+        MaximiseIcon.Data = Geometry.Parse(WindowState == WindowState.Maximized
+            ? "M4,8H8V4H20V16H16V20H4V8M16,8V14H18V6H10V8H16Z"  // restore icon
+            : "M4,4H20V20H4V4M6,8V18H18V8H6Z");                  // maximise icon
+    }
+
+    private void CloseButton_Click(object? sender, RoutedEventArgs e)
+        => Close();
+
     private async Task InitLibrary()
     {
         string musicFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic);
@@ -140,16 +169,53 @@ public partial class MainWindow : Window
                 AlbumArt = bitmap
             };
         }).ToList());
+        var logPath = Path.Combine(AppContext.BaseDirectory, "debug.log");
+        using var log = new StreamWriter(logPath, append: false);
 
-        _allFolders = _allLibrarySongs
+        foreach (var s in _allLibrarySongs)
+        {
+            var rel = Path.GetRelativePath(musicFolder, Path.GetDirectoryName(s.FilePath) ?? musicFolder);
+            log.WriteLine($"rel: {rel} | parts: {rel.Split(Path.DirectorySeparatorChar).Length}");
+        }
+        var topLevelGroups = _allLibrarySongs
             .GroupBy(s =>
             {
                 var rel = Path.GetRelativePath(musicFolder, Path.GetDirectoryName(s.FilePath) ?? musicFolder);
                 return rel.Split(Path.DirectorySeparatorChar)[0];
             })
-            .OrderBy(g => g.Key)
-            .Select(g => new LibraryFolder { Name = g.Key, Songs = g.ToList() })
-            .ToList();
+            .OrderBy(g => g.Key);
+
+        _allFolders = topLevelGroups.Select(topGroup =>
+        {
+            var directSongs = topGroup.Where(s =>
+            {
+                var rel = Path.GetRelativePath(musicFolder, Path.GetDirectoryName(s.FilePath) ?? musicFolder);
+                return rel.Split(Path.DirectorySeparatorChar).Length == 1;
+            }).ToList();
+
+            // Subfolders
+            var children = topGroup
+                .Where(s =>
+                {
+                    var rel = Path.GetRelativePath(musicFolder, Path.GetDirectoryName(s.FilePath) ?? musicFolder);
+                    return rel.Split(Path.DirectorySeparatorChar).Length >= 2;
+                })
+                .GroupBy(s =>
+                {
+                    var rel = Path.GetRelativePath(musicFolder, Path.GetDirectoryName(s.FilePath) ?? musicFolder);
+                    return rel.Split(Path.DirectorySeparatorChar)[1];
+                })
+                .OrderBy(g => g.Key)
+                .Select(g => new LibraryFolder { Name = g.Key, Songs = g.ToList() })
+                .ToList();
+
+            return new LibraryFolder
+            {
+                Name = topGroup.Key,
+                Songs = directSongs,
+                Children = children
+            };
+        }).ToList();
 
         LibraryList.ItemsSource = _allLibrarySongs;
         FolderList.ItemsSource = _allFolders;

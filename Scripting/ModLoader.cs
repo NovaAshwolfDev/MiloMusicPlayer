@@ -39,6 +39,8 @@ public sealed class LoadedMod
 public sealed class ModLoader
 {
     private readonly string               _modsDirectory;
+    private readonly object _hookLock = new object();
+
     private readonly List<LoadedMod>      _loadedMods  = new();
     private readonly System.Timers.Timer  _updateTimer = new(16);
     private DateTime                      _lastUpdate  = DateTime.UtcNow;
@@ -337,10 +339,13 @@ public sealed class ModLoader
     private void FireHook(LoadedMod mod, FunctionValue? hook, List<MiloValue> args, string modName)
     {
         if (hook is null) return;
+
+        if (!System.Threading.Monitor.TryEnter(_hookLock))
+            return;
+
         try
         {
             var callScope = new RuntimeScope(hook.Closure);
-
             if (mod.ModInstance is not null)
             {
                 callScope.Define("this", mod.ModInstance);
@@ -348,7 +353,6 @@ public sealed class ModLoader
                     if (!fieldName.StartsWith("__method_"))
                         callScope.Define(fieldName, fieldValue);
             }
-
             for (int i = 0; i < hook.Params.Count && i < args.Count; i++)
                 callScope.Define(hook.Params[i].Name, args[i]);
 
@@ -360,7 +364,6 @@ public sealed class ModLoader
             }
             catch (ReturnSignal) { }
 
-            // Write field mutations back to the instance after the hook runs
             if (mod.ModInstance is not null)
             {
                 foreach (var fieldName in mod.ModInstance.Fields.Keys.ToList())
@@ -377,6 +380,10 @@ public sealed class ModLoader
         catch (Exception ex)
         {
             Log?.Invoke($"[ModLoader] Unexpected error in '{modName}': {ex.Message}");
+        }
+        finally
+        {
+            System.Threading.Monitor.Exit(_hookLock);
         }
     }
 }

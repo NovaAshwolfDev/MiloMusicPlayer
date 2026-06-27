@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "a3INwKmo6o0=",
+  "dgSpecHash": "69NHKnybR1w=",
   "success": true,
   "projectFilePath": "I:\\Drive\\Coding\\CSharp\\MiloMusicPlayer\\MiloMusicPlayer.csproj",
   "expectedPackageFiles": [
@@ -45,6 +45,18 @@
     "C:\\Users\\Milo\\.nuget\\packages\\tmds.dbus.protocol\\0.21.2\\tmds.dbus.protocol.0.21.2.nupkg.sha512"
   ],
   "logs": [
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "message": "Package 'Tmds.DBus.Protocol' 0.21.2 has a known high severity vulnerability, https://github.com/advisories/GHSA-xrw6-gwf8-vvr9",
+      "projectPath": "I:\\Drive\\Coding\\CSharp\\MiloMusicPlayer\\MiloMusicPlayer.csproj",
+      "warningLevel": 1,
+      "filePath": "I:\\Drive\\Coding\\CSharp\\MiloMusicPlayer\\MiloMusicPlayer.csproj",
+      "libraryId": "Tmds.DBus.Protocol",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
     {
       "code": "NU1701",
       "level": "Warning",

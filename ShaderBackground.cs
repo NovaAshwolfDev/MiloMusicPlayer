@@ -25,12 +25,15 @@ public class ShaderBackground : Control
         _startTime = DateTime.UtcNow;
         try
         {
-            using var stream = AssetLoader.Open(new Uri("avares://MiloMusicPlayer/Assets/BlobVis.sksl"));
+            using var stream = AssetLoader.Open(new Uri("avares://MiloMusicPlayer/Assets/RainbowNoise.sksl"));
             using var reader = new StreamReader(stream);
             string shaderSource = reader.ReadToEnd();
             string errors;
             _effect = SKRuntimeEffect.CreateShader(shaderSource, out errors);
-            Console.WriteLine("Shader errors: " + errors);
+
+            File.WriteAllText("shader_log.txt", string.IsNullOrEmpty(errors) ? "Compiled OK" : errors);
+            if (!string.IsNullOrEmpty(errors))
+                Console.WriteLine("Shader errors: " + errors);
         }
         catch (Exception ex)
         {

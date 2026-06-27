@@ -131,10 +131,29 @@ public sealed class HostApi
             };
         });
 
-        RegisterFn("play",  _ => { RequestPlay?.Invoke();  return NullValue.Instance; });
-        RegisterFn("pause", _ => { RequestPause?.Invoke(); return NullValue.Instance; });
-        RegisterFn("next",  _ => { RequestNext?.Invoke();  return NullValue.Instance; });
-        RegisterFn("prev",  _ => { RequestPrev?.Invoke();  return NullValue.Instance; });
+        RegisterFn("pause", _ =>
+        {
+            Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => RequestPause?.Invoke());
+            return NullValue.Instance;
+        });
+
+        RegisterFn("play", _ =>
+        {
+            Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => RequestPlay?.Invoke());
+            return NullValue.Instance;
+        });
+
+        RegisterFn("next", _ =>
+        {
+            Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => RequestNext?.Invoke());
+            return NullValue.Instance;
+        });
+
+        RegisterFn("prev", _ =>
+        {
+            Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => RequestPrev?.Invoke());
+            return NullValue.Instance;
+        });
 
         RegisterFn("getVolume", _ => new FloatValue(GetVolume?.Invoke() ?? 1f));
 

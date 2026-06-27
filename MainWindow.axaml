@@ -5,7 +5,10 @@
         x:Class="MiloMusicPlayer.MainWindow"
         Title="MiloMusicPlayer"
         Width="600"
-        Height="700">
+        Height="700"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="-1">
 
     <Window.Styles>
         <Style Selector="Window">
@@ -104,322 +107,376 @@
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="8"/>
         </Style>
+
+        <!-- Title bar button styles -->
+        <Style Selector="Button.titlebar-btn">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#7F96AA"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+        <Style Selector="Button.titlebar-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#1A2233"/>
+        </Style>
+        <Style Selector="Button.titlebar-btn-close:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#c0392b"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
     </Window.Styles>
 
-    <Grid>
-        <local:ShaderBackground
-            x:Name="ShaderBackground"
-            IsVisible="False"
-        />
+    <Grid RowDefinitions="32,*">
 
-        <Border x:Name="PlayerView"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Background="#0D1320"
-                BorderBrush="#20314A"
-                BorderThickness="1"
-                CornerRadius="28"
-                Padding="14"
-                Opacity="1">
+        <Grid Grid.Row="0" Background="#070B14" PointerPressed="TitleBar_PointerPressed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-            <StackPanel HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Spacing="8">
-
-                <Border x:Name="SongImageBorder"
-                        CornerRadius="28"
-                        ClipToBounds="True"
-                        Background="#111827"
-                        BorderBrush="#243754"
-                        BorderThickness="1"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center">
-                    <Image x:Name="SongImage"
-                           Stretch="Fill"/>
-                </Border>
-
-                <Slider x:Name="ProgressSlider"
-                        Minimum="0"
-                        Maximum="100"
-                        Width="300"
-                        Margin="0,6,0,0"/>
-
-                <TextBlock x:Name="SongPosition"
-                           Classes="meta"
-                           Text="0:00 / 3:40"
-                           HorizontalAlignment="Center"
-                           TextAlignment="Center"/>
-
-                <TextBlock x:Name="SongTitleText"
-                           Classes="title"
-                           Text="Song Title Goes Here"
-                           HorizontalAlignment="Center"
-                           TextAlignment="Center"
-                           MaxWidth="560"/>
-
-                <TextBlock x:Name="ArtistText"
-                           Classes="subtitle"
-                           Text="Artist"
-                           HorizontalAlignment="Center"
-                           TextAlignment="Center"/>
-
-                <TextBlock x:Name="GenreText"
-                           Classes="meta"
-                           Text="Genre"
-                           HorizontalAlignment="Center"
-                           TextAlignment="Center"/>
-
-                <StackPanel Orientation="Horizontal"
-                            HorizontalAlignment="Center"
-                            Spacing="16"
-                            Margin="0,18,0,0">
-
-                    <Button x:Name="ShuffleButton"
-                            Classes="media"
-                            Width="38"
-                            Height="38"
-                            CornerRadius="19"
-                            Click="ShuffleButton_Click">
-                        <PathIcon Width="16" Height="16"
-                                  Foreground="White"
-                                  Data="M14.83,13.41L13.42,14.82L16.55,17.95L14.5,20H20V14.5L17.96,16.54L14.83,13.41M14.5,4L16.54,6.04L4,18.59L5.41,20L17.96,7.46L20,9.5V4M10.59,9.17L5.41,4L4,5.41L9.17,10.58L10.59,9.17Z"/>
-                    </Button>
-
-                    <Button x:Name="BackButton"
-                            Classes="media"
-                            Width="48"
-                            Height="48"
-                            CornerRadius="24"
-                            Click="SkipBack_Click">
-                        <PathIcon Width="18" Height="18"
-                                  Foreground="White"
-                                  Data="M15,18V6L6.5,12M18,18V6H16V18H18Z"/>
-                    </Button>
-
-                    <Button x:Name="PlayPauseButton"
-                            Classes="primaryMedia"
-                            Width="62"
-                            Height="62"
-                            CornerRadius="31"
-                            Click="PlayPause_Click">
-                        <PathIcon x:Name="PlayPauseIcon"
-                                  Width="22"
-                                  Height="22"
-                                  Foreground="White"
-                                  Data="M8,5V19L19,12L8,5Z"/>
-                    </Button>
-
-                    <Button x:Name="NextButton"
-                            Classes="media"
-                            Width="48"
-                            Height="48"
-                            CornerRadius="24"
-                            Click="SkipForward_Click">
-                        <PathIcon Width="18" Height="18"
-                                  Foreground="White"
-                                  Data="M9,6V18L17.5,12M8,6H6V18H8V6Z"/>
-                    </Button>
-
-                    <Button x:Name="RepeatButton"
-                            Classes="media"
-                            Width="38"
-                            Height="38"
-                            CornerRadius="19"
-                            Click="RepeatButton_Click">
-                        <PathIcon Width="16" Height="16"
-                                  Foreground="White"
-                                  Data="M17,17H7V14L3,18L7,22V19H19V13H17M7,7H17V10L21,6L17,2V5H5V11H7V7Z"/>
-                    </Button>
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal"
-                            HorizontalAlignment="Center"
-                            Spacing="8"
-                            Margin="0,8,0,0">
-                    <PathIcon Width="14" Height="14"
-                              Foreground="#7F96AA"
-                              Data="M5,9V15H9L14,20V4L9,9H5Z"/>
-                    <Slider x:Name="VolumeSlider"
-                            Minimum="0"
-                            Maximum="1"
-                            Value="1"
-                            Width="200"
-                            ValueChanged="VolumeSlider_Changed"/>
-                    <PathIcon Width="14" Height="14"
-                              Foreground="#7F96AA"
-                              Data="M3,9V15H7L12,20V4L7,9H3M16.5,12A4.5,4.5 0 0,0 12,7.5V16.5A4.5,4.5 0 0,0 16.5,12M19,12A7,7 0 0,1 12,19V17A5,5 0 0,0 17,12A5,5 0 0,0 12,7V5A7,7 0 0,1 19,12Z"/>
-                </StackPanel>
-
+            <StackPanel Grid.Column="1" Orientation="Horizontal"
+                        VerticalAlignment="Center" Spacing="8">
+                <Image Source="/Assets/icon.ico" Width="16" Height="16"/>
+                <TextBlock Text="Milo's Music Player" Foreground="#7F96AA"
+                           FontSize="12" VerticalAlignment="Center"/>
             </StackPanel>
-        </Border>
 
-        <Grid x:Name="LibraryView"
-              IsVisible="False"
-              Opacity="0"
-              Margin="24">
-
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-
-            <TextBlock Grid.Row="0"
-                       Text="Library"
-                       Classes="title"
-                       FontSize="28"
-                       Margin="0,72,0,0"/>
-
-            <Grid Grid.Row="1" Margin="0,8,0,12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <TextBox Grid.Column="0"
-                         x:Name="SearchBox"
-                         Watermark="Search songs, artists, albums..."
-                         Height="40"
-                         Margin="0,0,8,0"
-                         TextChanged="SearchBox_TextChanged"/>
-
-                <StackPanel Grid.Column="1"
-                            Orientation="Horizontal"
-                            Spacing="6">
-                    <Button x:Name="ListViewButton"
-                            Classes="mediaActive"
-                            Width="40"
-                            Height="40"
-                            CornerRadius="8"
-                            ToolTip.Tip="List view"
-                            Click="ListViewButton_Click">
-                        <PathIcon Width="16" Height="16"
-                                  Foreground="White"
-                                  Data="M3,4H21V6H3V4M3,9H21V11H3V9M3,14H21V16H3V14M3,19H21V21H3V19Z"/>
-                    </Button>
-                    <Button x:Name="FolderViewButton"
-                            Classes="media"
-                            Width="40"
-                            Height="40"
-                            CornerRadius="8"
-                            ToolTip.Tip="Folder view"
-                            Click="FolderViewButton_Click">
-                        <PathIcon Width="16" Height="16"
-                                  Foreground="White"
-                                  Data="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"/>
-                    </Button>
-                </StackPanel>
-            </Grid>
-
-            <ListBox Grid.Row="2"
-                     x:Name="LibraryList"
-                     Background="Transparent"
-                     Tapped="LibraryList_Tapped"
-                     IsVisible="True">
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="models:LibrarySong">
-                        <Grid ColumnDefinitions="56,*" Margin="0,4">
-                            <Border Grid.Column="0"
-                                    Width="48" Height="48"
-                                    CornerRadius="6"
-                                    ClipToBounds="True"
-                                    Background="#111827">
-                                <Image Source="{Binding AlbumArt}"
-                                       Stretch="UniformToFill"/>
-                            </Border>
-                            <StackPanel Grid.Column="1"
-                                        VerticalAlignment="Center"
-                                        Margin="10,0,0,0"
-                                        Spacing="2">
-                                <TextBlock Text="{Binding Title}"
-                                           Classes="subtitle"
-                                           FontWeight="SemiBold"
-                                           TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Text="{Binding Artist}"
-                                           Classes="meta"
-                                           TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Text="{Binding Album}"
-                                           Classes="meta"
-                                           TextTrimming="CharacterEllipsis"/>
-                            </StackPanel>
-                        </Grid>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-
-            <TreeView Grid.Row="2"
-                      x:Name="FolderList"
-                      Background="Transparent"
-                      Tapped="FolderList_Tapped"
-                      IsVisible="False">
-                <TreeView.DataTemplates>
-                    <TreeDataTemplate DataType="models:LibraryFolder"
-                                      ItemsSource="{Binding Songs}">
-                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6">
-                            <PathIcon Width="16" Height="16"
-                                      Foreground="#7F96AA"
-                                      Data="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"/>
-                            <TextBlock Text="{Binding Name}"
-                                       Classes="subtitle"
-                                       FontWeight="SemiBold"
-                                       VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </TreeDataTemplate>
-                    <DataTemplate DataType="models:LibrarySong">
-                        <Grid ColumnDefinitions="56,*" Margin="0,4">
-                            <Border Grid.Column="0"
-                                    Width="48" Height="48"
-                                    CornerRadius="6"
-                                    ClipToBounds="True"
-                                    Background="#111827">
-                                <Image Source="{Binding AlbumArt}"
-                                       Stretch="UniformToFill"/>
-                            </Border>
-                            <StackPanel Grid.Column="1"
-                                        VerticalAlignment="Center"
-                                        Margin="10,0,0,0"
-                                        Spacing="2">
-                                <TextBlock Text="{Binding Title}"
-                                           Classes="subtitle"
-                                           FontWeight="SemiBold"
-                                           TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Text="{Binding Artist}"
-                                           Classes="meta"
-                                           TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Text="{Binding Album}"
-                                           Classes="meta"
-                                           TextTrimming="CharacterEllipsis"/>
-                            </StackPanel>
-                        </Grid>
-                    </DataTemplate>
-                </TreeView.DataTemplates>
-            </TreeView>
+            <StackPanel Grid.Column="2" Orientation="Horizontal"
+                        HorizontalAlignment="Right" Margin="0,0,4,0">
+                <Button Click="MinimiseButton_Click" Classes="titlebar-btn">
+                    <PathIcon Width="10" Height="10" Foreground="#7F96AA"
+                            Data="M20,14H4V10H20"/>
+                </Button>
+                <Button Click="MaximiseButton_Click" Classes="titlebar-btn">
+                    <PathIcon x:Name="MaximiseIcon" Width="10" Height="10" Foreground="#7F96AA"
+                            Data="M4,4H20V20H4V4M6,8V18H18V8H6Z"/>
+                </Button>
+                <Button Click="CloseButton_Click" Classes="titlebar-btn titlebar-btn-close">
+                    <PathIcon Width="10" Height="10" Foreground="#7F96AA"
+                            Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                </Button>
+            </StackPanel>
         </Grid>
 
-        <StackPanel HorizontalAlignment="Left"
-                    VerticalAlignment="Top"
-                    Margin="16"
-                    Spacing="8">
-            <Button x:Name="LibraryButton"
-                    Classes="media"
-                    Width="46"
-                    Height="46"
-                    CornerRadius="23"
-                    Click="LibraryButton_Click">
-                <PathIcon Width="18" Height="18"
-                          Foreground="White"
-                          Data="M12 3V15.55A4 4 0 1 0 14 19V7H20V3H12Z"/>
-            </Button>
-            <Button x:Name="ShaderButton"
-                    Classes="media"
-                    Width="46"
-                    Height="46"
-                    CornerRadius="23"
-                    Click="ShaderButton_Click">
-                <PathIcon Width="18" Height="18"
-                          Foreground="White"
-                          Data="M12 2A10 10 0 0 0 12 22A10 10 0 0 0 12 2M12 4A8 8 0 0 1 12 20A8 8 0 0 1 12 4M11 6V13H13V6M9.27 7.76L7.86 9.17A6 6 0 0 0 6 13A6 6 0 0 0 12 19A6 6 0 0 0 18 13A6 6 0 0 0 16.14 9.17L14.73 7.76A4 4 0 0 1 16 13A4 4 0 0 1 12 17A4 4 0 0 1 8 13A4 4 0 0 1 9.27 7.76Z"/>
-            </Button>
-        </StackPanel>
+        <Grid Grid.Row="1">
+            <local:ShaderBackground
+                x:Name="ShaderBackground"
+                IsVisible="False"
+            />
+
+            <Border x:Name="PlayerView"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="#0D1320"
+                    BorderBrush="#20314A"
+                    BorderThickness="1"
+                    CornerRadius="28"
+                    Padding="14"
+                    Opacity="1">
+
+                <StackPanel HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Spacing="8">
+
+                    <Border x:Name="SongImageBorder"
+                            CornerRadius="28"
+                            ClipToBounds="True"
+                            Background="#111827"
+                            BorderBrush="#243754"
+                            BorderThickness="1"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                        <Image x:Name="SongImage"
+                               Stretch="Fill"/>
+                    </Border>
+
+                    <Slider x:Name="ProgressSlider"
+                            Minimum="0"
+                            Maximum="100"
+                            Width="300"
+                            Margin="0,6,0,0"/>
+
+                    <TextBlock x:Name="SongPosition"
+                               Classes="meta"
+                               Text="0:00 / 3:40"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"/>
+
+                    <TextBlock x:Name="SongTitleText"
+                               Classes="title"
+                               Text="Song Title Goes Here"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               MaxWidth="560"/>
+
+                    <TextBlock x:Name="ArtistText"
+                               Classes="subtitle"
+                               Text="Artist"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"/>
+
+                    <TextBlock x:Name="GenreText"
+                               Classes="meta"
+                               Text="Genre"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"/>
+
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                Spacing="16"
+                                Margin="0,18,0,0">
+
+                        <Button x:Name="ShuffleButton"
+                                Classes="media"
+                                Width="38"
+                                Height="38"
+                                CornerRadius="19"
+                                Click="ShuffleButton_Click">
+                            <PathIcon Width="16" Height="16"
+                                      Foreground="White"
+                                      Data="M14.83,13.41L13.42,14.82L16.55,17.95L14.5,20H20V14.5L17.96,16.54L14.83,13.41M14.5,4L16.54,6.04L4,18.59L5.41,20L17.96,7.46L20,9.5V4M10.59,9.17L5.41,4L4,5.41L9.17,10.58L10.59,9.17Z"/>
+                        </Button>
+
+                        <Button x:Name="BackButton"
+                                Classes="media"
+                                Width="48"
+                                Height="48"
+                                CornerRadius="24"
+                                Click="SkipBack_Click">
+                            <PathIcon Width="18" Height="18"
+                                      Foreground="White"
+                                      Data="M15,18V6L6.5,12M18,18V6H16V18H18Z"/>
+                        </Button>
+
+                        <Button x:Name="PlayPauseButton"
+                                Classes="primaryMedia"
+                                Width="62"
+                                Height="62"
+                                CornerRadius="31"
+                                Click="PlayPause_Click">
+                            <PathIcon x:Name="PlayPauseIcon"
+                                      Width="22"
+                                      Height="22"
+                                      Foreground="White"
+                                      Data="M8,5V19L19,12L8,5Z"/>
+                        </Button>
+
+                        <Button x:Name="NextButton"
+                                Classes="media"
+                                Width="48"
+                                Height="48"
+                                CornerRadius="24"
+                                Click="SkipForward_Click">
+                            <PathIcon Width="18" Height="18"
+                                      Foreground="White"
+                                      Data="M9,6V18L17.5,12M8,6H6V18H8V6Z"/>
+                        </Button>
+
+                        <Button x:Name="RepeatButton"
+                                Classes="media"
+                                Width="38"
+                                Height="38"
+                                CornerRadius="19"
+                                Click="RepeatButton_Click">
+                            <PathIcon Width="16" Height="16"
+                                      Foreground="White"
+                                      Data="M17,17H7V14L3,18L7,22V19H19V13H17M7,7H17V10L21,6L17,2V5H5V11H7V7Z"/>
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                Spacing="8"
+                                Margin="0,8,0,0">
+                        <PathIcon Width="14" Height="14"
+                                  Foreground="#7F96AA"
+                                  Data="M5,9V15H9L14,20V4L9,9H5Z"/>
+                        <Slider x:Name="VolumeSlider"
+                                Minimum="0"
+                                Maximum="1"
+                                Value="1"
+                                Width="200"
+                                ValueChanged="VolumeSlider_Changed"/>
+                        <PathIcon Width="14" Height="14"
+                                  Foreground="#7F96AA"
+                                  Data="M3,9V15H7L12,20V4L7,9H3M16.5,12A4.5,4.5 0 0,0 12,7.5V16.5A4.5,4.5 0 0,0 16.5,12M19,12A7,7 0 0,1 12,19V17A5,5 0 0,0 17,12A5,5 0 0,0 12,7V5A7,7 0 0,1 19,12Z"/>
+                    </StackPanel>
+
+                </StackPanel>
+            </Border>
+
+            <Grid x:Name="LibraryView"
+                  IsVisible="False"
+                  Opacity="0"
+                  Margin="24">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0"
+                           Text="Library"
+                           Classes="title"
+                           FontSize="28"
+                           Margin="0,40,0,0"/>
+
+                <Grid Grid.Row="1" Margin="0,8,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox Grid.Column="0"
+                             x:Name="SearchBox"
+                             Watermark="Search songs, artists, albums..."
+                             Height="40"
+                             Margin="0,0,8,0"
+                             TextChanged="SearchBox_TextChanged"/>
+
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                Spacing="6">
+                        <Button x:Name="ListViewButton"
+                                Classes="mediaActive"
+                                Width="40"
+                                Height="40"
+                                CornerRadius="8"
+                                ToolTip.Tip="List view"
+                                Click="ListViewButton_Click">
+                            <PathIcon Width="16" Height="16"
+                                      Foreground="White"
+                                      Data="M3,4H21V6H3V4M3,9H21V11H3V9M3,14H21V16H3V14M3,19H21V21H3V19Z"/>
+                        </Button>
+                        <Button x:Name="FolderViewButton"
+                                Classes="media"
+                                Width="40"
+                                Height="40"
+                                CornerRadius="8"
+                                ToolTip.Tip="Folder view"
+                                Click="FolderViewButton_Click">
+                            <PathIcon Width="16" Height="16"
+                                      Foreground="White"
+                                      Data="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"/>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <ListBox Grid.Row="2"
+                         x:Name="LibraryList"
+                         Background="Transparent"
+                         Tapped="LibraryList_Tapped"
+                         IsVisible="True">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:LibrarySong">
+                            <Grid ColumnDefinitions="56,*" Margin="0,4">
+                                <Border Grid.Column="0"
+                                        Width="48" Height="48"
+                                        CornerRadius="6"
+                                        ClipToBounds="True"
+                                        Background="#111827">
+                                    <Image Source="{Binding AlbumArt}"
+                                           Stretch="UniformToFill"/>
+                                </Border>
+                                <StackPanel Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            Margin="10,0,0,0"
+                                            Spacing="2">
+                                    <TextBlock Text="{Binding Title}"
+                                               Classes="subtitle"
+                                               FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding Artist}"
+                                               Classes="meta"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding Album}"
+                                               Classes="meta"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <TreeView Grid.Row="2"
+                          x:Name="FolderList"
+                          Background="Transparent"
+                          Tapped="FolderList_Tapped"
+                          IsVisible="False">
+                    <TreeView.DataTemplates>
+                        <TreeDataTemplate DataType="models:LibraryFolder" ItemsSource="{Binding Items}">
+                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6">
+                                <PathIcon Width="16" Height="16"
+                                          Foreground="#7F96AA"
+                                          Data="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"/>
+                                <TextBlock Text="{Binding Name}"
+                                           Classes="subtitle"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </TreeDataTemplate>
+                        <DataTemplate DataType="models:LibrarySong">
+                            <Grid ColumnDefinitions="56,*" Margin="0,4">
+                                <Border Grid.Column="0"
+                                        Width="48" Height="48"
+                                        CornerRadius="6"
+                                        ClipToBounds="True"
+                                        Background="#111827">
+                                    <Image Source="{Binding AlbumArt}"
+                                           Stretch="UniformToFill"/>
+                                </Border>
+                                <StackPanel Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            Margin="10,0,0,0"
+                                            Spacing="2">
+                                    <TextBlock Text="{Binding Title}"
+                                               Classes="subtitle"
+                                               FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding Artist}"
+                                               Classes="meta"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding Album}"
+                                               Classes="meta"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </TreeView.DataTemplates>
+                </TreeView>
+            </Grid>
+
+            <StackPanel HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Margin="16"
+                        Spacing="8">
+                <Button x:Name="LibraryButton"
+                        Classes="media"
+                        Width="46"
+                        Height="46"
+                        CornerRadius="23"
+                        Click="LibraryButton_Click">
+                    <PathIcon Width="18" Height="18"
+                              Foreground="White"
+                              Data="M12 3V15.55A4 4 0 1 0 14 19V7H20V3H12Z"/>
+                </Button>
+                <Button x:Name="ShaderButton"
+                        Classes="media"
+                        Width="46"
+                        Height="46"
+                        CornerRadius="23"
+                        Click="ShaderButton_Click">
+                    <PathIcon Width="18" Height="18"
+                              Foreground="White"
+                              Data="M12 2A10 10 0 0 0 12 22A10 10 0 0 0 12 2M12 4A8 8 0 0 1 12 20A8 8 0 0 1 12 4M11 6V13H13V6M9.27 7.76L7.86 9.17A6 6 0 0 0 6 13A6 6 0 0 0 12 19A6 6 0 0 0 18 13A6 6 0 0 0 16.14 9.17L14.73 7.76A4 4 0 0 1 16 13A4 4 0 0 1 12 17A4 4 0 0 1 8 13A4 4 0 0 1 9.27 7.76Z"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+
     </Grid>
 </Window>
