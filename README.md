@@ -59,13 +59,18 @@ cd MiloMusicPlayer
 Run the project:
 
 ```
-dotnet run
+dotnet build -c Debug
+or
+dotnet build -c Release
 ```
 
 ---
 
 ## Planned Features
-* Settings panel
+* ~~Settings panel~~ Done!
+* Music Sessions (Play Music with others in realtime) **ACTIVELY BEING WORKED ON**
+* Custom Shader Backgrounds (Not Started yet but should be easy to implement!)
+* If you have more suggestions, throw them in issues!
 ---
 
 ## License
