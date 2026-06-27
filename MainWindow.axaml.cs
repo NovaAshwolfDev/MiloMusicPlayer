@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Media.Transformation;
 
 namespace MiloMusicPlayer;
 
@@ -29,13 +30,18 @@ public partial class MainWindow : Window
     private bool updatingSlider = false;
     private bool shadersOn = false;
     private bool _libraryOpen = false;
+    private bool _settingsOpen = false;
     private bool _libraryReady = false;
     private bool _libraryInitialized = false;
+    private double _settingsButtonOriginalY;
+    private double _settingsButtonTranslateY = 0;
+    private TranslateTransform _settingsButtonTransform;
     private bool _folderView = false;
     private bool _shuffle = false;
-    private bool _repeat  = false;
+    private bool _repeat = false;
     private List<LibraryFolder> _allFolders = new();
     private List<LibrarySong> _allLibrarySongs = new();
+    private bool _animatingSettingsButton = false;
 
     private readonly AlbumArtServer _artServer = new();
     private readonly Services.DiscordRPC _rpc = new("980443378661621843");
@@ -43,36 +49,41 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
-        string musicFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic);
+        SettingsManager.Load();
         InitializeComponent();
         Icon = new WindowIcon("Assets/icon.ico");
-        songs = LibraryScanner.ScanFolder(musicFolder);
+
+        player.Volume = SettingsManager.Current.Volume;
+        VolumeSlider.Value = SettingsManager.Current.Volume;
+        _settingsButtonOriginalY = SettingsButton.Bounds.Top;
+
+        songs = ScanAllFolders();
 
         var modsPath = Path.Combine(AppContext.BaseDirectory, "Mods");
         Directory.CreateDirectory(modsPath);
 
         _modLoader = new ModLoader(modsPath);
-        _modLoader.Log            = msg => Console.WriteLine(msg);
-        _modLoader.GetVolume      = () => player.Volume;
-        _modLoader.SetVolume      = v  => { player.Volume = v; VolumeSlider.Value = v; };
-        _modLoader.RequestPlay    = () => ResumePlayback();
-        _modLoader.RequestPause   = () => PausePlayback();
-        _modLoader.RequestNext    = () => NextSong();
-        _modLoader.RequestPrev    = () => PrevSong();
+        _modLoader.Log = msg => Console.WriteLine(msg);
+        _modLoader.GetVolume = () => player.Volume;
+        _modLoader.SetVolume = v => { player.Volume = v; VolumeSlider.Value = v; };
+        _modLoader.RequestPlay = () => ResumePlayback();
+        _modLoader.RequestPause = () => PausePlayback();
+        _modLoader.RequestNext = () => NextSong();
+        _modLoader.RequestPrev = () => PrevSong();
         _modLoader.GetPlayerState = () => new PlayerState
         {
             IsPlaying = playing,
-            Volume    = player.Volume,
-            Position  = (float)player.Position.TotalSeconds
+            Volume = player.Volume,
+            Position = (float)player.Position.TotalSeconds
         };
         _modLoader.GetQueue = () => songs.Select(s => new TrackInfo
         {
-            Title    = s.Title,
-            Artist   = s.Artist,
-            Album    = s.Genre,
-            Genre    = s.Genre,
+            Title = s.Title,
+            Artist = s.Artist,
+            Album = s.Genre,
+            Genre = s.Genre,
             Duration = (float)player.Duration.TotalSeconds,
-            Path     = s.FilePath
+            Path = s.FilePath
         }).ToList();
         _modLoader.PlayTrack = path =>
         {
@@ -88,6 +99,13 @@ public partial class MainWindow : Window
         };
         _modLoader.LoadAll();
 
+        SettingsView.SettingsChanged += OnSettingsChanged;
+        SettingsButton.LayoutUpdated += (_, _) =>
+        {
+            _settingsButtonOriginalY = SettingsButton.Bounds.Top;
+        };
+        _settingsButtonTransform = new TranslateTransform(0, 0);
+        SettingsButton.RenderTransform = _settingsButtonTransform;
         if (songs.Count == 0)
             return;
 
@@ -96,15 +114,7 @@ public partial class MainWindow : Window
         PausePlayback();
         ShaderBackground.FftBands = player.GetFftBands();
 
-        KeyDown += (_, e) =>
-        {
-            if (e.Key == Avalonia.Input.Key.F11)
-            {
-                WindowState = WindowState == WindowState.FullScreen
-                    ? WindowState.Normal
-                    : WindowState.FullScreen;
-            }
-        };
+        KeyDown += HandleGlobalKeyDown;
 
         this.SizeChanged += (_, _) =>
         {
@@ -112,7 +122,17 @@ public partial class MainWindow : Window
                 LibraryButton.Margin = new Thickness(Bounds.Width - 90, LibraryButton.Margin.Top, LibraryButton.Margin.Right, LibraryButton.Margin.Bottom);
             else
                 LibraryButton.Margin = new Thickness(0, LibraryButton.Margin.Top, LibraryButton.Margin.Right, LibraryButton.Margin.Bottom);
+
+            _settingsButtonOriginalY = SettingsButton.Bounds.Top;
+
+            if (_settingsOpen)
+            {
+                var target = Bounds.Height - 90 - _settingsButtonOriginalY;
+                _settingsButtonTranslateY = target - 20;
+                SettingsButton.RenderTransform = TransformOperations.Parse($"translate(0px, {_settingsButtonTranslateY}px)");
+            }
         };
+
 
         Closing += (_, _) => _modLoader.UnloadAll();
 
@@ -122,7 +142,100 @@ public partial class MainWindow : Window
         timer.Start();
     }
 
-    // Title bar handlers
+    private List<Song> ScanAllFolders()
+    {
+        var all = new List<Song>();
+        foreach (var entry in SettingsManager.Current.MusicFolders)
+        {
+            if (!Directory.Exists(entry.Path)) continue;
+            var found = LibraryScanner.ScanFolder(entry.Path);
+            if (!entry.IncludeSubfolders)
+                found = found.Where(s => Path.GetDirectoryName(s.FilePath) == entry.Path).ToList();
+            all.AddRange(found);
+        }
+        return all;
+    }
+
+    private void OnSettingsChanged(AppSettings settings)
+    {
+        player.Volume = settings.Volume;
+        VolumeSlider.Value = settings.Volume;
+
+        songs = ScanAllFolders();
+        _ = InitLibrary();
+    }
+
+    private async void SettingsButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_settingsOpen)
+            await FadeToPlayer();
+        else
+            await FadeToSettings();
+    }
+
+    private async Task FadeToSettings()
+    {
+        _settingsOpen = true;
+        _libraryOpen = false;
+        SettingsView.IsVisible = true;
+        SettingsView.Refresh();
+
+        var target = Bounds.Height - 90 - _settingsButtonOriginalY;
+        _settingsButtonTranslateY = target - 20;
+
+        SettingsButton.RenderTransform = TransformOperations.Parse($"translate(0px, {_settingsButtonTranslateY}px)");
+
+        await AnimationHelper.AnimateMany(200,
+            (PlayerView,    "Opacity", 1.0, 0.0),
+            (LibraryView,   "Opacity", LibraryView.Opacity, 0.0),
+            (ShaderButton,  "Opacity", 1.0, 0.0),
+            (LibraryButton, "Opacity", 1.0, 0.0),
+            (SettingsView,  "Opacity", 0.0, 1.0)
+        );
+
+        PlayerView.IsVisible  = false;
+        LibraryView.IsVisible = false;
+    }
+
+    private void HandleGlobalKeyDown(object? sender, KeyEventArgs e)
+    {
+        var binds = SettingsManager.Current.Keybinds;
+
+        bool Is(string action) =>
+            binds.TryGetValue(action, out var k) &&
+            Enum.TryParse<Key>(k, out var parsed) &&
+            e.Key == parsed;
+
+        if (Is("PlayPause")) { PlayPause_Click(null, null!); e.Handled = true; }
+        else if (Is("SkipNext")) { NextSong(); e.Handled = true; }
+        else if (Is("SkipPrev")) { PrevSong(); e.Handled = true; }
+        else if (Is("VolumeUp")) { VolumeSlider.Value = Math.Min(1.0, VolumeSlider.Value + 0.05); e.Handled = true; }
+        else if (Is("VolumeDown")) { VolumeSlider.Value = Math.Max(0.0, VolumeSlider.Value - 0.05); e.Handled = true; }
+        else if (Is("Shuffle")) { ShuffleButton_Click(null, null!); e.Handled = true; }
+        else if (Is("Repeat")) { RepeatButton_Click(null, null!); e.Handled = true; }
+        else if (Is("Fullscreen"))
+        {
+            WindowState = WindowState == WindowState.FullScreen
+                ? WindowState.Normal
+                : WindowState.FullScreen;
+            e.Handled = true;
+        }
+        else
+        {
+            foreach (var kvp in binds)
+            {
+                if (kvp.Key.StartsWith("Mod.") &&
+                    Enum.TryParse<Key>(kvp.Value, out var modKey) &&
+                    e.Key == modKey)
+                {
+                    _modLoader.FireKeybind(kvp.Key);
+                    e.Handled = true;
+                    break;
+                }
+            }
+        }
+    }
+
     private void TitleBar_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
@@ -139,8 +252,8 @@ public partial class MainWindow : Window
             : WindowState.Maximized;
 
         MaximiseIcon.Data = Geometry.Parse(WindowState == WindowState.Maximized
-            ? "M4,8H8V4H20V16H16V20H4V8M16,8V14H18V6H10V8H16Z"  // restore icon
-            : "M4,4H20V20H4V4M6,8V18H18V8H6Z");                  // maximise icon
+            ? "M4,8H8V4H20V16H16V20H4V8M16,8V14H18V6H10V8H16Z"
+            : "M4,4H20V20H4V4M6,8V18H18V8H6Z");
     }
 
     private void CloseButton_Click(object? sender, RoutedEventArgs e)
@@ -148,7 +261,9 @@ public partial class MainWindow : Window
 
     private async Task InitLibrary()
     {
-        string musicFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic);
+        string musicFolder = SettingsManager.Current.MusicFolders.FirstOrDefault()?.Path
+            ?? Environment.GetFolderPath(Environment.SpecialFolder.MyMusic);
+
         _allLibrarySongs = await Task.Run(() => songs.Select(s =>
         {
             var art = MetadataReader.GetAlbumArt(s.FilePath);
@@ -169,6 +284,7 @@ public partial class MainWindow : Window
                 AlbumArt = bitmap
             };
         }).ToList());
+
         var logPath = Path.Combine(AppContext.BaseDirectory, "debug.log");
         using var log = new StreamWriter(logPath, append: false);
 
@@ -177,6 +293,7 @@ public partial class MainWindow : Window
             var rel = Path.GetRelativePath(musicFolder, Path.GetDirectoryName(s.FilePath) ?? musicFolder);
             log.WriteLine($"rel: {rel} | parts: {rel.Split(Path.DirectorySeparatorChar).Length}");
         }
+
         var topLevelGroups = _allLibrarySongs
             .GroupBy(s =>
             {
@@ -193,7 +310,6 @@ public partial class MainWindow : Window
                 return rel.Split(Path.DirectorySeparatorChar).Length == 1;
             }).ToList();
 
-            // Subfolders
             var children = topGroup
                 .Where(s =>
                 {
@@ -226,6 +342,7 @@ public partial class MainWindow : Window
     {
         playing = true;
         PlayPauseIcon.Data = Geometry.Parse("M6,5H10V19H6M14,5H18V19H14");
+        PlayPauseIcon.Margin = new Thickness(0, 0, 0, 0);
         var song = songs[index];
         var art = MetadataReader.GetAlbumArt(song.FilePath);
         byte[]? artBytes = art;
@@ -348,6 +465,7 @@ public partial class MainWindow : Window
     {
         player.Resume();
         PlayPauseIcon.Data = Geometry.Parse("M6,5H10V19H6M14,5H18V19H14");
+        PlayPauseIcon.Margin = new Thickness(0, 0, 0, 0);
         playing = true;
         _rpc.UpdatePresence(songs[curSongIndex], player.Position, player.Duration, _artServer.Url);
     }
@@ -356,6 +474,7 @@ public partial class MainWindow : Window
     {
         player.Pause();
         PlayPauseIcon.Data = Geometry.Parse("M8,5V19L19,12L8,5Z");
+        PlayPauseIcon.Margin = new Thickness(3, 0, 0, 0);
         playing = false;
         _rpc.ClearPresence();
         _modLoader.FireOnPause();
@@ -374,11 +493,12 @@ public partial class MainWindow : Window
         RepeatButton.Classes.Set("mediaActive", _repeat);
         RepeatButton.Classes.Set("media", !_repeat);
     }
-
     private void VolumeSlider_Changed(object? sender, RangeBaseValueChangedEventArgs e)
     {
         player.Volume = (float)e.NewValue;
-        _modLoader.FireOnVolumeChange((float)e.NewValue);
+        SettingsManager.Current.Volume = (float)e.NewValue;
+        SettingsManager.Save();
+        _modLoader?.FireOnVolumeChange((float)e.NewValue);
     }
 
     private void SkipForward_Click(object? sender, RoutedEventArgs e) => NextSong();
@@ -440,6 +560,7 @@ public partial class MainWindow : Window
     private async Task FadeToLibrary()
     {
         _libraryOpen = true;
+        _settingsOpen = false;
         _libraryReady = false;
         LibraryView.IsVisible = true;
 
@@ -450,46 +571,56 @@ public partial class MainWindow : Window
             (PlayerView, "Opacity", 1.0, 0.0),
             (LibraryView, "Opacity", 0.0, 1.0),
             (ShaderButton, "Opacity", 1.0, 0.0),
+            (SettingsButton, "Opacity", 1.0, 0.0),
+            (SettingsView, "Opacity", SettingsView.Opacity, 0.0),
             (LibraryButton, "X", startLeft, targetLeft)
         );
 
         PlayerView.IsVisible = false;
+        SettingsView.IsVisible = false;
         _libraryReady = true;
     }
 
     private async Task FadeToPlayer()
     {
-        _libraryOpen = false;
+        bool wasSettings = _settingsOpen;
+        _libraryOpen  = false;
+        _settingsOpen = false;
         PlayerView.IsVisible = true;
 
         double startLeft = LibraryButton.Margin.Left;
 
-        await AnimationHelper.AnimateMany(200,
-            (LibraryView, "Opacity", 1.0, 0.0),
-            (PlayerView, "Opacity", 0.0, 1.0),
-            (ShaderButton, "Opacity", 0.0, 1.0),
-            (LibraryButton, "X", startLeft, 0)
-        );
+        if (wasSettings)
+        {
+            SettingsButton.RenderTransform = TransformOperations.Parse("translate(0px, 0px)");
+            _settingsButtonTranslateY = 0;
 
-        LibraryView.IsVisible = false;
+            await AnimationHelper.AnimateMany(200,
+                (LibraryView,   "Opacity", LibraryView.Opacity,  0.0),
+                (SettingsView,  "Opacity", SettingsView.Opacity, 0.0),
+                (PlayerView,    "Opacity", 0.0, 1.0),
+                (LibraryButton, "Opacity", 0.0, 1.0),
+                (ShaderButton,  "Opacity", 0.0, 1.0),
+                (SettingsButton, "Opacity", 0.0, 1.0)
+            );
+        }
+        else
+        {
+            await AnimationHelper.AnimateMany(200,
+                (LibraryView,   "Opacity", LibraryView.Opacity,  0.0),
+                (SettingsView,  "Opacity", SettingsView.Opacity, 0.0),
+                (PlayerView,    "Opacity", 0.0, 1.0),
+                (LibraryButton, "Opacity", 0.0, 1.0),
+                (ShaderButton,  "Opacity", 0.0, 1.0),
+                (SettingsButton, "Opacity", 0.0, 1.0),
+                (LibraryButton, "X", startLeft, 0)
+            );
+        }
+
+        LibraryView.IsVisible  = false;
+        SettingsView.IsVisible = false;
     }
-
-    private string FormatTime(TimeSpan time)
-    {
-        if (time.Hours > 0)
-            return $"{time.Hours}:{time.Minutes:D2}:{time.Seconds:D2}";
-
-        if (time.Minutes > 0)
-            return $"{time.Minutes}:{time.Seconds:D2}";
-
-        return $"0:{time.Seconds:D2}";
-    }
-
-    private string FormattedTime(TimeSpan position, TimeSpan duration)
-    {
-        return $"{FormatTime(position)} / {FormatTime(duration)}";
-    }
-
+    
     private void SearchBox_TextChanged(object? sender, TextChangedEventArgs e)
     {
         var query = SearchBox.Text?.ToLower() ?? "";
@@ -522,13 +653,27 @@ public partial class MainWindow : Window
         ShaderBackground.IsVisible = shadersOn;
     }
 
+    private string FormatTime(TimeSpan time)
+    {
+        if (time.Hours > 0)
+            return $"{time.Hours}:{time.Minutes:D2}:{time.Seconds:D2}";
+
+        if (time.Minutes > 0)
+            return $"{time.Minutes}:{time.Seconds:D2}";
+
+        return $"0:{time.Seconds:D2}";
+    }
+
+    private string FormattedTime(TimeSpan position, TimeSpan duration)
+        => $"{FormatTime(position)} / {FormatTime(duration)}";
+
     private TrackInfo SongToTrackInfo(Song song) => new TrackInfo
     {
-        Title    = song.Title,
-        Artist   = song.Artist,
-        Album    = song.Genre,
-        Genre    = song.Genre,
+        Title = song.Title,
+        Artist = song.Artist,
+        Album = song.Genre,
+        Genre = song.Genre,
         Duration = (float)player.Duration.TotalSeconds,
-        Path     = song.FilePath
+        Path = song.FilePath
     };
 }

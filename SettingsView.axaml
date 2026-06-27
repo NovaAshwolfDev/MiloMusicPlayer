@@ -1,0 +1,131 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="MiloMusicPlayer.Views.SettingsView">
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.section-header">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#49B9FF"/>
+            <Setter Property="Margin" Value="0,18,0,6"/>
+            <Setter Property="LetterSpacing" Value="1.5"/>
+        </Style>
+
+        <Style Selector="TextBlock.label">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#C7D9E8"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style Selector="TextBlock.dim">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#7F96AA"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style Selector="Button.settings-btn">
+            <Setter Property="Background" Value="#1A2233"/>
+            <Setter Property="Foreground" Value="#C7D9E8"/>
+            <Setter Property="BorderBrush" Value="#2B3D5D"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style Selector="Button.settings-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#22304A"/>
+        </Style>
+
+        <Style Selector="Button.danger">
+            <Setter Property="Background" Value="#1A1018"/>
+            <Setter Property="Foreground" Value="#FF6B6B"/>
+            <Setter Property="BorderBrush" Value="#5C2020"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style Selector="Button.danger:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2A1520"/>
+        </Style>
+
+        <Style Selector="Button.keybind-capture">
+            <Setter Property="Background" Value="#111827"/>
+            <Setter Property="Foreground" Value="#F5FBFF"/>
+            <Setter Property="BorderBrush" Value="#2B3D5D"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="MinWidth" Value="90"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+
+        <Style Selector="Button.keybind-capture.capturing">
+            <Setter Property="BorderBrush" Value="#49B9FF"/>
+            <Setter Property="Foreground" Value="#49B9FF"/>
+        </Style>
+
+        <Style Selector="Border.folder-row">
+            <Setter Property="Background" Value="#111827"/>
+            <Setter Property="BorderBrush" Value="#1E2F47"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Margin" Value="0,4"/>
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                  VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="24,40,24,24" Spacing="0">
+
+            <TextBlock Text="SETTINGS"
+                       FontSize="28"
+                       FontWeight="Bold"
+                       Foreground="#F5FBFF"/>
+
+            <TextBlock Text="MUSIC FOLDERS" Classes="section-header"/>
+
+            <StackPanel x:Name="FolderList" Spacing="0"/>
+
+            <Button x:Name="AddFolderButton"
+                    Classes="settings-btn"
+                    Margin="0,8,0,0"
+                    Click="AddFolderButton_Click">
+                + Add Folder
+            </Button>
+
+            <TextBlock Text="AUDIO" Classes="section-header"/>
+
+            <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="2">
+                    <TextBlock Text="Volume" Classes="label"/>
+                    <TextBlock Text="Default startup volume" Classes="dim"/>
+                </StackPanel>
+                <TextBlock x:Name="VolumeValueLabel"
+                           Grid.Column="1"
+                           Classes="dim"
+                           VerticalAlignment="Center"
+                           Margin="0,0,0,0"/>
+            </Grid>
+
+            <Slider x:Name="VolumeSettingSlider"
+                    Minimum="0"
+                    Maximum="1"
+                    Margin="0,0,0,4"
+                    ValueChanged="VolumeSettingSlider_Changed"/>
+
+            <TextBlock Text="KEYBINDS" Classes="section-header"/>
+            <TextBlock Text="Click a key to rebind. Press Escape to cancel."
+                       Classes="dim"
+                       Margin="0,0,0,8"/>
+
+            <StackPanel x:Name="KeybindList" Spacing="6"/>
+
+        </StackPanel>
+    </ScrollViewer>
+
+</UserControl>

@@ -1,11 +1,14 @@
-// Helpers/AnimationHelper.cs
+// Milo/AnimationHelper.cs
 using Avalonia;
-using Avalonia.Controls;
+using Avalonia.Animation;
 using Avalonia.Animation.Easings;
+using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using System;
 using System.Threading.Tasks;
+
 
 namespace Milo.Helpers;
 
@@ -50,6 +53,43 @@ public static class AnimationHelper
 
         control.RenderTransform = new TranslateTransform(to, 0);
     }
+    public static async Task AnimateY(Control control, double from, double to, int durationMs)
+    {
+        var transform = control.RenderTransform as TranslateTransform;
+        double currentX = transform?.X ?? 0;
+        if (transform == null)
+        {
+            transform = new TranslateTransform(currentX, from);
+            control.RenderTransform = transform;
+        }
+        else
+        {
+            transform.Y = from;
+        }
+
+        var start = DateTime.UtcNow;
+        var tcs = new TaskCompletionSource();
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(8) };
+
+        timer.Tick += (_, _) =>
+        {
+            var elapsed = (DateTime.UtcNow - start).TotalMilliseconds;
+            var t = Math.Clamp(elapsed / durationMs, 0, 1);
+            var e = EaseInOut(t);
+            var y = from + (to - from) * e;
+
+            control.RenderTransform = new TranslateTransform(currentX, y);
+
+            if (t >= 1)
+            {
+                timer.Stop();
+                tcs.SetResult();
+            }
+        };
+
+        timer.Start();
+        await tcs.Task;
+    }
     public static Task AnimateMany(int durationMs, params (Control control, string property, double from, double to)[] targets)
     {
         var tcs = new TaskCompletionSource();
@@ -59,6 +99,7 @@ public static class AnimationHelper
         {
             if (property == "Opacity") control.Opacity = from;
             else if (property == "X") control.Margin = new Thickness(from, control.Margin.Top, control.Margin.Right, control.Margin.Bottom);
+            else if (property == "Y") control.RenderTransform = new TranslateTransform(0, from);
         }
 
         var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(8) };
@@ -73,6 +114,11 @@ public static class AnimationHelper
                 var val = from + (to - from) * e;
                 if (property == "Opacity") control.Opacity = val;
                 else if (property == "X") control.Margin = new Thickness(val, control.Margin.Top, control.Margin.Right, control.Margin.Bottom);
+                else if (property == "Y")
+                {
+                    var current = (control.RenderTransform as TranslateTransform);
+                    control.RenderTransform = new TranslateTransform(current?.X ?? 0, val);
+                }
             }
 
             if (t >= 1)

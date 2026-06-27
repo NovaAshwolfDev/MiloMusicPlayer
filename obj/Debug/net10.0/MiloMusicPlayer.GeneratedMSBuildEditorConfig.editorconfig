@@ -28,3 +28,6 @@ build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
 [I:/Drive/Coding/CSharp/MiloMusicPlayer/MainWindow.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[I:/Drive/Coding/CSharp/MiloMusicPlayer/SettingsView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml

@@ -335,7 +335,16 @@ public sealed class ModLoader
         inst.Fields["path"]     = new StringValue(track.Path);
         return inst;
     }
-
+    public void FireKeybind(string action)
+    {
+        foreach (var mod in _loadedMods)
+        {
+            if (mod.ModInstance is null) continue;
+            var key = "__method_onKeybind";
+            if (mod.ModInstance.Fields.TryGetValue(key, out var val) && val is FunctionValue fn)
+                FireHook(mod, fn, new List<MiloValue> { new StringValue(action) }, mod.Manifest.Name);
+        }
+    }
     private void FireHook(LoadedMod mod, FunctionValue? hook, List<MiloValue> args, string modName)
     {
         if (hook is null) return;
