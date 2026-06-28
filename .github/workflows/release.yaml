@@ -1,8 +1,10 @@
 name: Build and Release
+
 on:
   push:
     tags:
       - 'v*'
+
   workflow_dispatch:
     inputs:
       tag:
@@ -21,17 +23,29 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+
     permissions:
       contents: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Create tag (workflow_dispatch only)
+      - name: Create tag (if needed)
         if: github.event_name == 'workflow_dispatch' && !inputs.debug
+        shell: pwsh
         run: |
-          git tag ${{ inputs.tag }}
-          git push origin ${{ inputs.tag }}
+          git fetch --tags
+
+          if (-not (git tag -l "${{ inputs.tag }}")) {
+            Write-Host "Creating tag ${{ inputs.tag }}"
+            git tag "${{ inputs.tag }}"
+            git push origin "${{ inputs.tag }}"
+          } else {
+            Write-Host "Tag already exists. Skipping."
+          }
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -48,9 +62,10 @@ jobs:
         run: mkdir -Force ./output
 
       - name: Zip output
+        shell: pwsh
         run: |
-          $zipName = "MiloMusicPlayer-${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}-win-x64.zip"
-          Compress-Archive -Path ./publish/* -DestinationPath "./output/$zipName"
+          $tag = if ("${{ github.ref_type }}" -eq "tag") { "${{ github.ref_name }}" } else { "${{ inputs.tag }}" }
+          Compress-Archive -Path ./publish/* -DestinationPath "./output/MiloMusicPlayer-$tag-win-x64.zip"
 
       - name: Upload artifacts (debug only)
         if: github.event_name == 'workflow_dispatch' && inputs.debug
@@ -59,13 +74,14 @@ jobs:
           name: MiloMusicPlayer-${{ inputs.tag }}-win-x64
           path: ./output/*.zip
 
-      - name: Create Release
+      - name: Create or Update Release
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.debug)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
-          files: ./output/MiloMusicPlayer-${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}-win-x64.zip
           name: Milo Music Player ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
           body: ${{ github.ref_type == 'tag' && 'New release' || inputs.description }}
+          files: ./output/MiloMusicPlayer-${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}-win-x64.zip
+          overwrite_files: true
           draft: false
           prerelease: false
