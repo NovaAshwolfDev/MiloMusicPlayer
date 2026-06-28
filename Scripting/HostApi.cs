@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using MiloMusicPlayer;
 
 namespace MiloMusicPlayer.Scripting;
 
@@ -25,6 +26,7 @@ public sealed class HostApi
     public Action<string>?        PlaySound        { get; set; }
     public Action<string>?        PlayTrack        { get; set; }
     public ModSpriteManager?      SpriteManager    { get; set; }
+    public ShaderBackground?      ShaderBackground { get; set; }
 
     public HostApi(RuntimeScope scope, TypeEnvironment types)
     {
@@ -276,6 +278,26 @@ public sealed class HostApi
                 SpriteManager?.DestroySprite(inst);
             return NullValue.Instance;
         });
+
+        RegisterFn("loadShader", args =>
+        {
+            if (args.Count > 0 && args[0] is StringValue sv && ShaderBackground != null)
+                return new BoolValue(ShaderBackground.LoadShaderSource(sv.Value));
+            return BoolValue.False;
+        });
+
+        RegisterFn("loadShaderFile", args =>
+        {
+            if (args.Count > 0 && args[0] is StringValue sv && ShaderBackground != null)
+            {
+                var path = sv.Value;
+                var filePath = Path.IsPathRooted(path) ? path : Path.Combine(ModFolderPath, path);
+                return new BoolValue(ShaderBackground.LoadShaderFile(filePath));
+            }
+            return BoolValue.False;
+        });
+
+        RegisterFn("getShaderError", _ => new StringValue(ShaderBackground?.ShaderError ?? ""));
 
         RegisterFn("listSize", args =>
         {

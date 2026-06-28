@@ -28,17 +28,11 @@ public class ShaderBackground : Control
             using var stream = AssetLoader.Open(new Uri("avares://MiloMusicPlayer/Assets/RainbowNoise.sksl"));
             using var reader = new StreamReader(stream);
             string shaderSource = reader.ReadToEnd();
-            string errors;
-            _effect = SKRuntimeEffect.CreateShader(shaderSource, out errors);
-
-            File.WriteAllText("shader_log.txt", string.IsNullOrEmpty(errors) ? "Compiled OK" : errors);
-            if (!string.IsNullOrEmpty(errors))
-                Console.WriteLine("Shader errors: " + errors);
+            LoadShaderSource(shaderSource);
         }
         catch (Exception ex)
         {
             _shaderError = ex.Message;
-            Console.WriteLine("Error loading shader: " + ex);
         }
 
         _timer = new DispatcherTimer
@@ -47,6 +41,76 @@ public class ShaderBackground : Control
         };
         _timer.Tick += (_, _) => InvalidateVisual();
         _timer.Start();
+    }
+
+    public string? ShaderError => _shaderError;
+
+    public bool LoadShaderSource(string source)
+    {
+        if (string.IsNullOrWhiteSpace(source))
+        {
+            _shaderError = "Shader source is empty.";
+            _effect = null;
+            Dispatcher.UIThread.InvokeAsync(() => InvalidateVisual());
+            return false;
+        }
+
+        try
+        {
+            string errors;
+            var effect = SKRuntimeEffect.CreateShader(source, out errors);
+            if (effect == null)
+            {
+                _shaderError = errors;
+                _effect = null;
+                Dispatcher.UIThread.InvokeAsync(() => InvalidateVisual());
+                return false;
+            }
+
+            _effect = effect;
+            _shaderError = null;
+            Dispatcher.UIThread.InvokeAsync(() => InvalidateVisual());
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _shaderError = ex.Message;
+            _effect = null;
+            Dispatcher.UIThread.InvokeAsync(() => InvalidateVisual());
+            return false;
+        }
+    }
+
+    public bool LoadShaderFile(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            _shaderError = "Shader file path is empty.";
+            _effect = null;
+            Dispatcher.UIThread.InvokeAsync(() => InvalidateVisual());
+            return false;
+        }
+
+        if (!File.Exists(filePath))
+        {
+            _shaderError = $"Shader file not found: {filePath}";
+            _effect = null;
+            Dispatcher.UIThread.InvokeAsync(() => InvalidateVisual());
+            return false;
+        }
+
+        try
+        {
+            var source = File.ReadAllText(filePath);
+            return LoadShaderSource(source);
+        }
+        catch (Exception ex)
+        {
+            _shaderError = ex.Message;
+            _effect = null;
+            Dispatcher.UIThread.InvokeAsync(() => InvalidateVisual());
+            return false;
+        }
     }
 
     public override void Render(DrawingContext context)

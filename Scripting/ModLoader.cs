@@ -57,6 +57,7 @@ public sealed class ModLoader
     public Action<string>?        QueueTrack     { get; set; }
     public Action<string>?        PlayTrack      { get; set; }
     public ModSpriteManager?      SpriteManager   { get; set; }
+    public ShaderBackground?     ShaderBackground { get; set; }
 
     public IReadOnlyList<LoadedMod> LoadedMods => _loadedMods;
 
@@ -150,6 +151,7 @@ public sealed class ModLoader
         var hostApi = new HostApi(globalScope, typeEnv);
         hostApi.ModFolderPath  = folderPath;
         hostApi.SpriteManager  = SpriteManager;
+        hostApi.ShaderBackground = ShaderBackground;
         hostApi.LogHandler     = msg => Log?.Invoke($"[Script] {msg}");
         hostApi.GetPlayerState = GetPlayerState;
         hostApi.GetVolume      = GetVolume;
@@ -268,6 +270,9 @@ public sealed class ModLoader
         scope.Define("queueTrack",     new FunctionType(new() { PrimitiveType.String }, PrimitiveType.Void));
         scope.Define("playTrack",      new FunctionType(new() { PrimitiveType.String }, PrimitiveType.Void));
         scope.Define("playSound",      new FunctionType(new() { PrimitiveType.String }, PrimitiveType.Void));
+        scope.Define("loadShader",     new FunctionType(new() { PrimitiveType.String }, PrimitiveType.Bool));
+        scope.Define("setShaderSource",new FunctionType(new() { PrimitiveType.String }, PrimitiveType.Bool));
+        scope.Define("getShaderError", new FunctionType(new(), PrimitiveType.String));
         scope.Define("createSprite",   new FunctionType(new() { PrimitiveType.String, PrimitiveType.Float, PrimitiveType.Float }, (MiloType)typeEnv.Resolve("Sprite")!));
         scope.Define("destroySprite",  new FunctionType(new() { UnknownType.Instance }, PrimitiveType.Void));
         scope.Define("listSize",       new FunctionType(new() { UnknownType.Instance }, PrimitiveType.Int));
