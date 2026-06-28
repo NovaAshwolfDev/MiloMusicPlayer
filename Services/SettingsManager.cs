@@ -38,7 +38,6 @@ public class SettingsManager
         }
         catch (Exception ex)
         {
-            Console.WriteLine("[Settings Manager] Error loading settings: " + ex);
             Current = new AppSettings();
         }
     }
@@ -52,7 +51,6 @@ public class SettingsManager
         }
         catch (Exception ex)
         {
-            Console.WriteLine("[Settings Manager] Error saving settings: " + ex);
         }
         
     }

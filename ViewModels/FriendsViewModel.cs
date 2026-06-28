@@ -150,7 +150,6 @@ public class FriendsViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[CreateSession] {ex.Message}");
         }
         finally { _creatingSession = false; }
     }
@@ -223,15 +222,9 @@ public class FriendsViewModel : INotifyPropertyChanged
             Dispatcher.UIThread.Post(() => SessionParticipants.Remove(uid));
         _sessionWs.OnHostResolved += hostId =>
         {
-            Console.WriteLine($"[Session] Host is {hostId}, I am {SettingsManager.Current.UserId}");
             if (hostId == SettingsManager.Current.UserId)
             {
-                Console.WriteLine("[Session] I am host, starting audio stream");
                 _sessionWs.StartAudioStream();
-            }
-            else
-            {
-                Console.WriteLine("[Session] I am peer, not starting audio stream");
             }
         };
         await _sessionWs.ConnectAsync();

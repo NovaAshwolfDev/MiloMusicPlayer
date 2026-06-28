@@ -43,14 +43,10 @@ public class AlbumArtServer : IDisposable
             using var response = await _http.SendAsync(request);
             var url = await response.Content.ReadAsStringAsync();
 
-            Console.WriteLine("Catbox response: " + url);
-
             return url.StartsWith("https://") ? url.Trim() : null;
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Catbox upload failed: " + ex.Message);
-            Console.WriteLine("Inner: " + ex.InnerException?.Message);
             return null;
         }
     }

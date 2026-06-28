@@ -78,7 +78,6 @@ public class SessionWebSocket : IDisposable
                         Buffer.BlockCopy(pcm, 0, bytes, 0, bytes.Length);
                         _playbackBuffer?.AddSamples(bytes, 0, bytes.Length);
                     }
-                    Console.WriteLine($"[Audio] Received binary chunk: {result.Count} bytes, decoded: {samples} samples");
                     continue;
                 }
                 if (result.MessageType != WebSocketMessageType.Text) continue;
@@ -125,7 +124,6 @@ public class SessionWebSocket : IDisposable
         catch (OperationCanceledException) { }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SessionWebSocket] ReceiveLoop error: {ex.Message}");
         }
     }
 
@@ -162,7 +160,6 @@ public class SessionWebSocket : IDisposable
 
         _capture.DataAvailable += async (s, e) =>
         {
-            Console.WriteLine($"[Audio] DataAvailable: {e.BytesRecorded} bytes");
             if (!IsConnected || e.BytesRecorded == 0) return;
 
             var floats = new float[e.BytesRecorded / 4];
@@ -195,7 +192,6 @@ public class SessionWebSocket : IDisposable
         };
 
         _capture.StartRecording();
-        Console.WriteLine($"[Audio] Capture started, format: {_capture.WaveFormat}");
     }
 
     public void StopAudioStream()
