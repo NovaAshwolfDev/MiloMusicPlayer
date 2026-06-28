@@ -47,6 +47,7 @@ public partial class MainWindow : Window
     private readonly AlbumArtServer _artServer = new();
     private readonly Services.DiscordRPC _rpc = new("980443378661621843");
     private ModLoader _modLoader;
+    private ModSpriteManager? _spriteManager;
 
     public MainWindow()
     {
@@ -72,6 +73,8 @@ public partial class MainWindow : Window
         _modLoader.RequestPause = () => PausePlayback();
         _modLoader.RequestNext = () => NextSong();
         _modLoader.RequestPrev = () => PrevSong();
+        _spriteManager = new ModSpriteManager(ModSpriteHost);
+        _modLoader.SpriteManager = _spriteManager;
         _modLoader.GetPlayerState = () => new PlayerState
         {
             IsPlaying = playing,
@@ -395,7 +398,6 @@ public partial class MainWindow : Window
         }
 
         await _artServer.SetArt(artBytes);
-        Console.WriteLine("Art URL: " + _artServer.Url);
         _rpc.UpdatePresence(songs[index], TimeSpan.Zero, player.Duration, _artServer.Url);
 
         _modLoader.FireOnTrackChange(SongToTrackInfo(song));
@@ -417,6 +419,8 @@ public partial class MainWindow : Window
             ProgressSlider.Value = Helpers.Lerp(ProgressSlider.Value, target, 0.3);
             updatingSlider = false;
         }
+
+        _spriteManager?.UpdateSprites();
 
         if (player.Duration > TimeSpan.Zero &&
             player.Duration - player.Position < TimeSpan.FromMilliseconds(200))
@@ -572,13 +576,12 @@ public partial class MainWindow : Window
     }
     private async void FriendsButton_Click(object? sender, RoutedEventArgs e)
     {
-        // Check if user is logged in; if not, show login window
         if (string.IsNullOrEmpty(SettingsManager.Current.AuthToken))
         {
             var login = new Views.LoginWindow();
             await login.ShowDialog(this);
             if (string.IsNullOrEmpty(login.Token))
-                return; // cancelled
+                return;
 
             SettingsManager.Current.AuthToken = login.Token;
             if (!string.IsNullOrWhiteSpace(login.UserId))
@@ -589,7 +592,6 @@ public partial class MainWindow : Window
 
             SettingsManager.Save();
 
-            // Reinitialize the FriendsViewModel with the new token
             FriendsPanel.DataContext = new ViewModels.FriendsViewModel();
         }
 

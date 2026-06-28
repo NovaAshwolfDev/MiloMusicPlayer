@@ -178,6 +178,11 @@
                 IsVisible="False"
             />
 
+            <Canvas x:Name="ModSpriteHost"
+                    IsHitTestVisible="False"
+                    Background="Transparent"
+                    Panel.ZIndex="10" />
+
             <Border x:Name="PlayerView"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"

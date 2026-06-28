@@ -56,6 +56,7 @@ public sealed class ModLoader
     public Func<List<TrackInfo>>? GetQueue       { get; set; }
     public Action<string>?        QueueTrack     { get; set; }
     public Action<string>?        PlayTrack      { get; set; }
+    public ModSpriteManager?      SpriteManager   { get; set; }
 
     public IReadOnlyList<LoadedMod> LoadedMods => _loadedMods;
 
@@ -148,6 +149,7 @@ public sealed class ModLoader
 
         var hostApi = new HostApi(globalScope, typeEnv);
         hostApi.ModFolderPath  = folderPath;
+        hostApi.SpriteManager  = SpriteManager;
         hostApi.LogHandler     = msg => Log?.Invoke($"[Script] {msg}");
         hostApi.GetPlayerState = GetPlayerState;
         hostApi.GetVolume      = GetVolume;
@@ -266,6 +268,8 @@ public sealed class ModLoader
         scope.Define("queueTrack",     new FunctionType(new() { PrimitiveType.String }, PrimitiveType.Void));
         scope.Define("playTrack",      new FunctionType(new() { PrimitiveType.String }, PrimitiveType.Void));
         scope.Define("playSound",      new FunctionType(new() { PrimitiveType.String }, PrimitiveType.Void));
+        scope.Define("createSprite",   new FunctionType(new() { PrimitiveType.String, PrimitiveType.Float, PrimitiveType.Float }, (MiloType)typeEnv.Resolve("Sprite")!));
+        scope.Define("destroySprite",  new FunctionType(new() { UnknownType.Instance }, PrimitiveType.Void));
         scope.Define("listSize",       new FunctionType(new() { UnknownType.Instance }, PrimitiveType.Int));
         scope.Define("contains",       new FunctionType(new() { PrimitiveType.String, PrimitiveType.String }, PrimitiveType.Bool));
         scope.Define("now",            new FunctionType(new(), PrimitiveType.String));
@@ -294,6 +298,7 @@ public sealed class ModLoader
             catch (Exception ex) { Log?.Invoke($"[ModLoader] Error unloading '{mod.Manifest.Name}': {ex.Message}"); }
         }
         _updateTimer.Stop();
+        SpriteManager?.ClearAll();
         _loadedMods.Clear();
     }
 

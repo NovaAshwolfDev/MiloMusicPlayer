@@ -158,23 +158,21 @@ public class FriendsViewModel : INotifyPropertyChanged
     {
         if (_sessionWs != null)
         {
+            _sessionWs.StopAudioStream();
             await _sessionWs.CloseAsync();
             _sessionWs.Dispose();
             _sessionWs = null;
         }
-
         _currentSessionId = null;
         IsInSession = false;
-
         Dispatcher.UIThread.Post(() =>
         {
             ChatMessages.Clear();
             SessionParticipants.Clear();
+            IsFriendsVisible = true;
+            IsFeedVisible = false;
+            IsSessionVisible = false;
         });
-
-        IsFriendsVisible = true;
-        IsFeedVisible = false;
-        IsSessionVisible = false;
     }
     public async Task AddFriend(string friendUserId)
     {
@@ -223,7 +221,19 @@ public class FriendsViewModel : INotifyPropertyChanged
             Dispatcher.UIThread.Post(() => SessionParticipants.Add(name));
         _sessionWs.OnUserLeft += uid =>
             Dispatcher.UIThread.Post(() => SessionParticipants.Remove(uid));
-
+        _sessionWs.OnHostResolved += hostId =>
+        {
+            Console.WriteLine($"[Session] Host is {hostId}, I am {SettingsManager.Current.UserId}");
+            if (hostId == SettingsManager.Current.UserId)
+            {
+                Console.WriteLine("[Session] I am host, starting audio stream");
+                _sessionWs.StartAudioStream();
+            }
+            else
+            {
+                Console.WriteLine("[Session] I am peer, not starting audio stream");
+            }
+        };
         await _sessionWs.ConnectAsync();
         IsInSession = true;
         ShowSessionCommand.Execute(null);

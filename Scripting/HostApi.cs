@@ -24,6 +24,7 @@ public sealed class HostApi
     public Action<string>?        QueueTrackByPath { get; set; }
     public Action<string>?        PlaySound        { get; set; }
     public Action<string>?        PlayTrack        { get; set; }
+    public ModSpriteManager?      SpriteManager    { get; set; }
 
     public HostApi(RuntimeScope scope, TypeEnvironment types)
     {
@@ -64,6 +65,38 @@ public sealed class HostApi
         pathsClass.Fields["images"] = PrimitiveType.String;
         pathsClass.Methods["join"]  = new FunctionType(new() { PrimitiveType.String, PrimitiveType.String }, PrimitiveType.String);
         _types.Register(pathsClass);
+
+        var spriteClass = new ClassType("Sprite");
+        spriteClass.Fields["x"]        = PrimitiveType.Float;
+        spriteClass.Fields["y"]        = PrimitiveType.Float;
+        spriteClass.Fields["opacity"]  = PrimitiveType.Float;
+        spriteClass.Fields["visible"]  = PrimitiveType.Bool;
+        spriteClass.Fields["source"]   = PrimitiveType.String;
+        spriteClass.Fields["scale"]    = PrimitiveType.Float;
+        spriteClass.Fields["rotation"] = PrimitiveType.Float;
+        spriteClass.Fields["width"]    = PrimitiveType.Float;
+        spriteClass.Fields["height"]   = PrimitiveType.Float;
+        _types.Register(spriteClass);
+        _scope.Define("Sprite", new InstanceFactory("Sprite", args =>
+        {
+            var source = args.Count > 0 && args[0] is StringValue sv ? sv.Value : "";
+            var x = args.Count > 1 ? ToFloat(args[1], 0f) : 0f;
+            var y = args.Count > 2 ? ToFloat(args[2], 0f) : 0f;
+
+            var inst = new InstanceValue(spriteClass);
+            inst.Fields["x"] = new FloatValue(x);
+            inst.Fields["y"] = new FloatValue(y);
+            inst.Fields["opacity"] = new FloatValue(1f);
+            inst.Fields["visible"] = BoolValue.True;
+            inst.Fields["source"] = new StringValue(source);
+            inst.Fields["scale"] = new FloatValue(1f);
+            inst.Fields["rotation"] = new FloatValue(0f);
+            inst.Fields["width"] = new FloatValue(0f);
+            inst.Fields["height"] = new FloatValue(0f);
+
+            SpriteManager?.RegisterSprite(inst, source, x, y);
+            return inst;
+        }));
 
         var imod = new InterfaceType("IMod");
         RegisterIModMethods(imod);
@@ -215,6 +248,35 @@ public sealed class HostApi
             return NullValue.Instance;
         });
 
+        RegisterFn("createSprite", args =>
+        {
+            var path = args.Count > 0 && args[0] is StringValue sv ? sv.Value : "";
+            var x = args.Count > 1 ? ToFloat(args[1], 0f) : 0f;
+            var y = args.Count > 2 ? ToFloat(args[2], 0f) : 0f;
+
+            var spriteType = (ClassType)_types.Resolve("Sprite")!;
+            var sprite = new InstanceValue(spriteType);
+            sprite.Fields["x"] = new FloatValue(x);
+            sprite.Fields["y"] = new FloatValue(y);
+            sprite.Fields["opacity"] = new FloatValue(1f);
+            sprite.Fields["visible"] = BoolValue.True;
+            sprite.Fields["source"] = new StringValue(path);
+            sprite.Fields["scale"] = new FloatValue(1f);
+            sprite.Fields["rotation"] = new FloatValue(0f);
+            sprite.Fields["width"] = new FloatValue(0f);
+            sprite.Fields["height"] = new FloatValue(0f);
+
+            SpriteManager?.RegisterSprite(sprite, path, x, y);
+            return sprite;
+        });
+
+        RegisterFn("destroySprite", args =>
+        {
+            if (args.Count > 0 && args[0] is InstanceValue inst)
+                SpriteManager?.DestroySprite(inst);
+            return NullValue.Instance;
+        });
+
         RegisterFn("listSize", args =>
         {
             if (args.Count > 0 && args[0] is ListValue lv)
@@ -255,6 +317,17 @@ public sealed class HostApi
     private void RegisterFn(string name, Func<List<MiloValue>, MiloValue> fn)
     {
         _scope.Define(name, new NativeFunctionValue(name, fn));
+    }
+
+    private static float ToFloat(MiloValue? value, float defaultValue)
+    {
+        return value switch
+        {
+            FloatValue fv => fv.Value,
+            IntValue iv   => iv.Value,
+            StringValue sv when float.TryParse(sv.Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var f) => f,
+            _ => defaultValue
+        };
     }
 
     public InstanceValue TrackToInstance(TrackInfo track)
